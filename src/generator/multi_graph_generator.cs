@@ -22,6 +22,15 @@ hemde multigraphtaki aynı yerlere giden rotaları ayırt etmeye kullanılabilir
 Rotaları belli parçalardaki çizgilere bölüp bu çizgileri rota nesnesine koyuyor.
 Bu şekilde kavisli rotayı tam olarak çizebilir yada üzerinden otobüs vs yürütebilirsiniz.
 
+Aynı istasyonlar arası birden fazla rota oluşturulmaktadır, bu rotaların sayısı
+n (istasyon sayısı) tipinden n*DuplicateMax ile n*DuplicateMin arasında rastgele bir sayı olacaktır.
+
+Rota uzunluğu, x,y verilerine göre, zaman ve masraf ise min-max parametrelerinin arasında rastgele
+bir sayı olarak belirlenmektedir.
+
+Son olarak hash table içinde bütün istasyonların sahip olduğu rotalar hesaplanır. Bu şekilde bir
+istasyona bağlı bütün rotaları O(1) zamanda erişebilirsiniz.
+
 Sonuç olarak bir TransitGraph nesnesi döndürür. Bunu herhangi bir TransitGraph referansına
 atıp Graphınız ile istediğinizi yapabilirsiniz.
 */
@@ -40,6 +49,16 @@ namespace SmartTransit.Generator
 {
     public static class GraphGenerator
     {
+        // Compile time parameters for duplicates
+        private const double DuplicateMin = 0.1;
+        private const double DuplicateMax = 0.3;
+
+        // Compile time parameters for random route attributes
+        private const double MinTime = 10.0;
+        private const double MaxTime = 120.0;
+        private const double MinCost = 2.0;
+        private const double MaxCost = 50.0;
+
         public static TransitGraph CreateFullGraph(
             int stationCount, 
             double maxX, 
@@ -63,7 +82,7 @@ namespace SmartTransit.Generator
                 graph.Stations.Add(new Station(i, x, y));
             }
 
-            // 2. Rotaları Oluştur (MST + Mesafe Eşiği)
+            // 2. Rotaları Oluştur (MST + Mesafe Eşiği + Duplicates)
             graph.Routes = BuildRoutes(graph.Stations, distanceThreshold);
 
             // 3. Görselleştirme Aktifse Kavisleri Hesapla
@@ -72,21 +91,33 @@ namespace SmartTransit.Generator
                 ApplyBundlingLogic(graph.Routes);
             }
 
+            // 4. İstasyonların bağlı olduğu rotaları O(1) erişim için hesapla ve kaydet
+            graph.BuildAdjacencyList();
+
             return graph;
+        }
+
+        private static Route CreateRandomRoute(int id, Station source, Station target, Random rand)
+        {
+            double distance = Math.Sqrt(Math.Pow(source.X - target.X, 2) + Math.Pow(source.Y - target.Y, 2));
+            double time = MinTime + (rand.NextDouble() * (MaxTime - MinTime));
+            double cost = MinCost + (rand.NextDouble() * (MaxCost - MinCost));
+            return new Route(id, source, target, distance, time, cost);
         }
 
         private static List<Route> BuildRoutes(List<Station> stations, double threshold)
         {
             var routes = new List<Route>();
             var rand = new Random();
+            int routeIdCounter = 1;
 
-            // 1. Tüm olası bağlantıları mesafeleriyle listele
+            // 1. Tüm olası bağlantıları listele (Tamamen rastgele mesafe, zaman, maliyet)
             var candidates = new List<Route>();
             for (int i = 0; i < stations.Count; i++)
             {
                 for (int j = i + 1; j < stations.Count; j++)
                 {
-                    candidates.Add(new Route(stations[i], stations[j]));
+                    candidates.Add(CreateRandomRoute(routeIdCounter++, stations[i], stations[j], rand));
                 }
             }
 
@@ -110,11 +141,25 @@ namespace SmartTransit.Generator
                 }
                 else if (route.Distance < threshold && rand.NextDouble() > 0.9)
                 {
-                    // Multigraph mantığı: Zaten bağlılar ama birbirlerine yakınlar, 
+                    // Zaten bağlılar ama birbirlerine yakınlar, 
                     // %10 ihtimalle alternatif bir "ekspres hat" ekle.
                     routes.Add(route);
                 }
             }
+
+            // 2. Multigraph için rastgele kopya rotalar oluştur
+            int n = routes.Count;
+            int numDuplicates = (int)(n * (DuplicateMin + rand.NextDouble() * (DuplicateMax - DuplicateMin)));
+
+            for (int i = 0; i < numDuplicates; i++)
+            {
+                if (n == 0) break;
+                // Rastgele var olan bir bağlantıyı seç
+                var baseRoute = routes[rand.Next(n)];
+                // Yeni bir ID ve rastgele parametrelerle aynı iki istasyon arasına yeni rota oluştur
+                routes.Add(CreateRandomRoute(routeIdCounter++, baseRoute.Source, baseRoute.Target, rand));
+            }
+
             return routes;
         }
 
