@@ -30,6 +30,7 @@ namespace SmartTransit
             {
                 Station currentNode = pq.Dequeue();
 
+                // Başlangıç istasyonunun kendisine olan mesafesi sıfır.
                 if (currentNode.Id == endNode.Id)
                 {
                     break;
@@ -59,7 +60,7 @@ namespace SmartTransit
                             break;
                             */
                             //Route sınıfı güncellenene kadar Time ve Cost seçimlerinde hata alınmaması
-                            //adına geçici olarak mesafe (Distance) bilgisi baz alınmaktadır
+                            //adına geçici olarak mesafe (Distance) bilgisi baz alınmaktadır.
                         default:
                             routeWeight = route.Distance;
                             break;
