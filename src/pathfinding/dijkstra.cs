@@ -12,7 +12,8 @@ namespace SmartTransit
     {
         Distance, 
         Time,     
-        Cost      
+        Cost,
+        Transfers      
     }
 
     public class Dijkstra
@@ -54,7 +55,11 @@ namespace SmartTransit
                             break;
                         case OptimizationCriteria.Cost:
                             routeWeight = route.Cost;
-                            break;            
+                            break;
+                        case OptimizationCriteria.Transfers:
+                            routeWeight = 1; // En az aktarma, her durağı 1 say
+                            break;    
+            
                     }
 
                     double newCost = costs[currentNode.Id] + routeWeight;
