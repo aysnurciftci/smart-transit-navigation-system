@@ -48,22 +48,13 @@ namespace SmartTransit
                     {
                         case OptimizationCriteria.Distance:
                             routeWeight = route.Distance;
-                            break;
-                            /* TODO: Route sınıfına Time ve Cost özellikleri eklendiğinde 
-                            aşağıdaki yorum satırları aktif hale getirilecek 
-                            ve 'default' bloğu silinecektir.
+                            break;                          
                         case OptimizationCriteria.Time:
                             routeWeight = route.Time;
                             break;
                         case OptimizationCriteria.Cost:
                             routeWeight = route.Cost;
-                            break;
-                            */
-                            //Route sınıfı güncellenene kadar Time ve Cost seçimlerinde hata alınmaması
-                            //adına geçici olarak mesafe (Distance) bilgisi baz alınmaktadır.
-                        default:
-                            routeWeight = route.Distance;
-                            break;
+                            break;            
                     }
 
                     double newCost = costs[currentNode.Id] + routeWeight;
