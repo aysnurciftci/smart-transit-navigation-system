@@ -86,7 +86,7 @@ namespace SmartTransit.Generator
             {
                 for (int j = i + 1; j < stations.Count; j++)
                 {
-                    candidates.Add(new Route(stations[i], stations[j]));
+                    candidates.Add(new Route(0, stations[i], stations[j], 0, 0, 0));
                 }
             }
 

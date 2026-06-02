@@ -1,4 +1,4 @@
-﻿/*
+/*
 program.cs ana dosyamızdır ve program buradan başlayacaktır. Burada sadece
 başka yerlerde yazılmış ve hazır olarak kapsüllenmiş kısımları çağırın.
 TransitGraph, bizim multigraph nesnemizdir. Aşağıdaki örnekteki gibi
@@ -15,14 +15,15 @@ için lazımdı, kullanabilirsiniz.
 using SmartTransit.Models;
 using SmartTransit.Generator;
 using SmartTransit.MultiGraph;
+using SmartTransit.Tests;
+using System;
 
 class Program
 {
     static void Main()
     {
-        // Fonksiyonu çağır ve objeyi al
+    	// Fonksiyonu çağır ve objeyi al
         TransitGraph myCityMap = GraphGenerator.CreateFullGraph(60, 800, 600, 100, enableVisualBundling: true);
-
         // Artık 'myCityMap' üzerinden tüm istasyonlara ve rotalara erişebilirsin
         Console.WriteLine($"Toplam İstasyon: {myCityMap.Stations.Count}");
         Console.WriteLine($"Toplam Rota: {myCityMap.Routes.Count}");
@@ -36,8 +37,10 @@ class Program
         // Using string interpolation to print the details of each route
             Console.WriteLine($"İstasyon: {rota.Target.Id} | Mesafe: {rota.Distance:F2} metre");
         }
-
        
-         
+     
+        // Çalıştırdığınızda tüm sistemin (Hash Table, Multigraph, A*) 
+        // test edildiği yeni test modülünü çağırıyoruz.
+        TestProgram.RunAllTests();
     }
 }
