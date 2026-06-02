@@ -37,9 +37,9 @@ dotnet run
 Bu işlem, `test_program.cs` içerisindeki kapsamlı test paketini çalıştırarak; Harita Üretimini, O(1) HashTable Adjacency Aramalarını, A* Algoritmasını, QuadTree Uzamsal İndeksini ve Dijkstra (Time Optimized) Navigasyonunu sırasıyla test edecek ve sonuçları konsola basacaktır.
 
 ## Üyeler:
-032490020 - Ege Başaran
-032490021 - Hatice Nur Topcu
-032490025 - Ayşe Nur Çiftçi
-032490028 - Bora Pektaş
-032490029 - Taylan Özer
+032490020 - Ege Başaran  
+032490021 - Hatice Nur Topcu  
+032490025 - Ayşe Nur Çiftçi  
+032490028 - Bora Pektaş  
+032490029 - Taylan Özer  
 
