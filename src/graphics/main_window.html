@@ -1,150 +1,2111 @@
-//ana ekran ve grafik işlemleri
-using System;
-using System.Drawing;
-using System.Windows.Forms;
-using SmartTransit.Models;
-using SmartTransit.Generator;
-using SmartTransit.MultiGraph;
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title> Akıllı Toplu Taşıma ve Navigasyon Sistemi</title>
 
-namespace SmartTransit.UI
-{
-    public partial class MainWindow : Form
-    {
-        private TransitGraph graph;
-        private Station? seciliDurak;
-        private float scale = 1.0f;
-        private int offsetX = 0;
-        private int offsetY = 0;
-        private bool isDragging = false;
-        private Point lastMousePos;
+  <style>
 
-        public MainWindow()
-        {
-            // 20 istasyonlu, 800x600 boyutlarında, 200 mesafe eşiği
-            graph = GraphGenerator.CreateFullGraph(
-                stationCount: 20,
-                maxX: 800,
-                maxY: 600,
-                distanceThreshold: 200,
-                enableVisualBundling: true
-            );
-
-            this.DoubleBuffered = true;
-            this.Paint += MainWindow_Paint;
-            this.MouseMove += MainWindow_MouseMove;
-            this.MouseWheel += MainWindow_MouseWheel;
-            this.MouseDown += MainWindow_MouseDown;
-            this.MouseUp += MainWindow_MouseUp;
-        }
-
-        // Çizim (Paint)
-        private void MainWindow_Paint(object sender, PaintEventArgs e)
-        {
-            Graphics g = e.Graphics;
-
-            // Rotaları çiz
-            foreach (var route in graph.Routes)
-            {
-                if (route.PathPoints.Count > 0)
-                {
-                    for (int i = 0; i < route.PathPoints.Count - 1; i++)
-                    {
-                        g.DrawLine(Pens.Gray,
-                            (float)(route.PathPoints[i].X * scale + offsetX),
-                            (float)(route.PathPoints[i].Y * scale + offsetY),
-                            (float)(route.PathPoints[i + 1].X * scale + offsetX),
-                            (float)(route.PathPoints[i + 1].Y * scale + offsetY));
-                    }
-                }
-                else
-                {
-                    g.DrawLine(Pens.Gray,
-                        (float)(route.Source.X * scale + offsetX),
-                        (float)(route.Source.Y * scale + offsetY),
-                        (float)(route.Target.X * scale + offsetX),
-                        (float)(route.Target.Y * scale + offsetY));
-                }
-            }
-
-            // İstasyonları çiz
-            foreach (var s in graph.Stations)
-            {
-                bool isHovered = (seciliDurak != null && seciliDurak.Id == s.Id);
-                Brush brush = isHovered ? Brushes.Red : Brushes.Green;
-                int size = isHovered ? 15 : 10;
-
-                g.FillEllipse(brush,
-                    (float)(s.X * scale + offsetX) - size / 2,
-                    (float)(s.Y * scale + offsetY) - size / 2,
-                    size, size);
-
-                if (isHovered)
-                {
-                    g.DrawString(s.Name, this.Font, Brushes.Black,
-                        (float)(s.X * scale + offsetX) + 10,
-                        (float)(s.Y * scale + offsetY));
-                }
-            }
-        }
-
-        // Ölçeklendirme (Mouse Wheel)
-        private void MainWindow_MouseWheel(object sender, MouseEventArgs e)
-        {
-            if (e.Delta > 0)
-                scale += 0.1f;
-            else if (e.Delta < 0 && scale > 0.2f)
-                scale -= 0.1f;
-
-            this.Invalidate();
-        }
-
-        // Fare ile hareket aşağı (Mouse Down)
-        private void MainWindow_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                isDragging = true;
-                lastMousePos = e.Location;
-            }
-        }
-
-        // Fare ile hareket yukarı (Mouse Up)
-        private void MainWindow_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                isDragging = false;
-            }
-        }
-
-        // Fare hareketi kontrolü (Mouse Move)
-        private void MainWindow_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (isDragging)
-            {
-                offsetX += e.X - lastMousePos.X;
-                offsetY += e.Y - lastMousePos.Y;
-                lastMousePos = e.Location;
-                this.Invalidate();
-            }
-            else
-            {
-                seciliDurak = null;
-                foreach (var s in graph.Stations)
-                {
-                    var rect = new Rectangle(
-                        (int)(s.X * scale + offsetX) - 5,
-                        (int)(s.Y * scale + offsetY) - 5,
-                        10, 10);
-
-                    if (rect.Contains(e.Location))
-                    {
-                        seciliDurak = s;
-                        break;
-                    }
-                }
-                this.Invalidate();
-            }
-        }
+    /* =====================================================
+       GENEL STİLLLER
+       Sayfanın tamamında geçerli olan temel stiller.
+       ===================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-}
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      color: #222;
+      font-size: 13px;
+    }
+
+    /* Ana düzen: sol panel 260px sabit, sağ harita kalan */
+    #uygulama {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      height: 100vh;
+    }
+
+    /* =====================================================
+       SOL PANEL
+       ===================================================== */
+    #sol-panel {
+      background: #fafafa;
+      border-right: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #panel-baslik {
+      padding: 12px 14px 8px;
+      border-bottom: 1px solid #ddd;
+      background: #fff;
+    }
+
+    #panel-baslik h1 {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    #panel-baslik p {
+      font-size: 10px;
+      color: #888;
+    }
+
+    /* Slider ve checkbox kontrolleri */
+    #kontroller {
+      padding: 10px 14px;
+      border-bottom: 1px solid #ddd;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .kontrol-satiri {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .kontrol-etiket {
+      font-size: 10px;
+      color: #777;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .kontrol-etiket span {
+      color: #222;
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .checkbox-satiri {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* Yeni Şehir butonu */
+    #yeni-sehir-btn {
+      margin: 0 14px 10px;
+      padding: 7px 0;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #333;
+    }
+
+    #yeni-sehir-btn:hover { background: #eee; }
+
+    /* =====================================================
+       ALGORİTMA SEÇİCİ
+       A* ve Dijkstra arasında geçiş için sekme.
+       ===================================================== */
+    #algoritma-secici {
+      display: flex;
+      margin: 0 14px 6px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .algoritma-tab {
+      flex: 1;
+      padding: 6px 4px;
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      background: #f5f5f5;
+      border: none;
+      color: #888;
+    }
+
+    /* Aktif sekme */
+    .algoritma-tab.aktif {
+      background: #fff;
+      color: #222;
+      border-bottom: 2px solid #2563eb;
+    }
+
+    .algoritma-tab:hover:not(.aktif) { background: #eee; }
+
+    /* =====================================================
+       OPTİMİZASYON KRİTERİ SEÇİCİ
+       Sadece Dijkstra seçiliyken görünür.
+       A* sadece mesafeyle çalışır (a_star.cs'e göre).
+       ===================================================== */
+    #dijkstra-kriter-alani {
+      margin: 0 14px 8px;
+      display: none; /* başta gizli, Dijkstra seçince gösterilir */
+    }
+
+    #dijkstra-kriter-alani .bolum-baslik {
+      margin-bottom: 5px;
+    }
+
+    /* 2x2 kriter butonları± */
+    #kriter-butonlar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .kriter-btn {
+      padding: 5px 4px;
+      font-size: 10px;
+      font-weight: bold;
+      text-align: center;
+      cursor: pointer;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      color: #666;
+    }
+
+    .kriter-btn.aktif {
+      background: #e8f0fe;
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+
+    .kriter-btn:hover:not(.aktif) { background: #eee; }
+
+    /* =====================================================
+       BİLGİ PANELİ
+       İstatistikler ve dinamik içerik (KNN, rota sonucu).
+       ===================================================== */
+    #bilgi-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+    }
+
+    .bolum-baslik {
+      font-size: 10px;
+      font-weight: bold;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    /* 2 kolonlu istatistik kartları */
+    .istatistik-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .istatistik-kart {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 7px 9px;
+    }
+
+    .istatistik-sayi  { font-size: 16px; font-weight: bold; }
+    .istatistik-etiket { font-size: 9px; color: #888; margin-top: 2px; }
+
+    /* KNN liste satırları */
+    .liste-satiri {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .liste-satiri:hover { background: #f8f8f8; }
+
+    .nokta {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .mesafe-yazi { font-size: 9px; color: #888; margin-left: auto; }
+
+    .bos-durum {
+      font-size: 11px;
+      color: #aaa;
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    /* Rota sonucu kutusu */
+    .rota-kutusu {
+      background: #fff;
+      border: 1px solid #b8ccd8;
+      border-radius: 6px;
+      padding: 9px 11px;
+      margin-bottom: 6px;
+    }
+
+    .rota-baslik  { font-size: 11px; font-weight: bold; margin-bottom: 3px; }
+    .rota-detay   { font-size: 9px; color: #888; margin-bottom: 5px; }
+
+    .durak-listesi {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 4px;
+    }
+
+    .durak-etiketi {
+      font-size: 9px;
+      padding: 1px 5px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+    }
+
+    /* Uyarı kutusu — implement edilmemiş özellikler için */
+    .uyari-kutu {
+      background: #fff8e6;
+      border: 1px solid #f0d080;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: #7a5c00;
+      margin-top: 4px;
+    }
+
+    .uyari-kutu-baslik {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+
+    /* =====================================================
+       SAĞ TARAF — CANVAS VE KATMANLAR
+       ===================================================== */
+    #harita-alani {
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Zoom butonları */
+    #zoom-butonlar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .zoom-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(0,0,0,0.18);
+      border-radius: 5px;
+      background: rgba(255,255,255,0.93);
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      color: #444;
+    }
+
+    .zoom-btn:hover { background: #fff; }
+
+    /* Aktif algoritma etiketi — sol üst */
+    #algoritma-etiketi {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.93);
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 4px;
+      padding: 4px 9px;
+      font-size: 9px;
+      color: #444;
+      font-weight: bold;
+    }
+
+    /* Tooltip */
+    #tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 5px 9px;
+      font-size: 10px;
+      display: none;
+      z-index: 20;
+      color: #222;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    /* Durum çubuğu — sağ alt */
+    #durum-cubugu {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      font-size: 9px;
+      color: #555;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 4px;
+      padding: 3px 7px;
+    }
+
+    /* Lejant — sol alt */
+    #lejant {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.94);
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 9px;
+      color: #444;
+    }
+
+    .lejant-satiri {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .lejant-satiri:last-child { margin-bottom: 0; }
+
+    .lejant-renk  { width: 14px; height: 7px; border-radius: 1px; flex-shrink: 0; }
+    .lejant-daire { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #fff; flex-shrink: 0; }
+
+  </style>
+</head>
+<body>
+
+<div id="uygulama">
+
+  <!-- =====================================================
+       SOL PANEL
+       ===================================================== -->
+  <div id="sol-panel">
+
+    <div id="panel-baslik">
+      <h1>ğŸš‡ Transit Navigasyon</h1>
+      <p>Akıllı Toplu Taşıma Sistemi</p>
+    </div>
+
+    <div id="kontroller">
+      <div class="kontrol-satiri">
+        <div class="kontrol-etiket">
+          İstasyon sayısı <span id="istasyon-sayi-goster">35</span>
+        </div>
+        <input type="range" id="istasyon-slider" min="10" max="70" value="35">
+      </div>
+
+      <div class="kontrol-satiri">
+        <div class="kontrol-etiket">
+          Bağlantı eşiği <span id="esik-goster">220</span>
+        </div>
+        <input type="range" id="esik-slider" min="80" max="380" value="220">
+      </div>
+
+      <label class="checkbox-satiri">
+        <input type="checkbox" id="etiket-checkbox">
+        İstasyon etiketlerini göster
+      </label>
+    </div>
+
+    <button id="yeni-sehir-btn">â†º Yeni Şehir Oluştur</button>
+
+    <!-- Algoritma seçici: A* veya Dijkstra -->
+    <div id="algoritma-secici">
+      <button class="algoritma-tab aktif" data-algoritma="astar">A* (Sezgisel)</button>
+      <button class="algoritma-tab"       data-algoritma="dijkstra">Dijkstra (Kesin)</button>
+    </div>
+
+    <!-- Dijkstra optimizasyon kriteri — sadece Dijkstra seçilince görünür -->
+    <div id="dijkstra-kriter-alani">
+      <div class="bolum-baslik">Optimizasyon Kriteri</div>
+      <div id="kriter-butonlar">
+        <button class="kriter-btn aktif" data-kriter="mesafe">ğŸ“ Mesafe</button>
+        <button class="kriter-btn"       data-kriter="zaman">â± Süre</button>
+        <button class="kriter-btn"       data-kriter="maliyet">ğŸ’° Maliyet</button>
+        <button class="kriter-btn"       data-kriter="aktarma">ğŸ”„ Aktarma</button>
+      </div>
+    </div>
+
+    <div id="bilgi-panel">
+      <div class="bolum-baslik">Graf İstatistikleri</div>
+      <div class="istatistik-grid">
+        <div class="istatistik-kart">
+          <div class="istatistik-sayi"  id="stat-istasyon">—</div>
+          <div class="istatistik-etiket">İstasyon</div>
+        </div>
+        <div class="istatistik-kart">
+          <div class="istatistik-sayi"  id="stat-rota">—</div>
+          <div class="istatistik-etiket">Rota</div>
+        </div>
+        <div class="istatistik-kart">
+          <div class="istatistik-sayi"  id="stat-mst">—</div>
+          <div class="istatistik-etiket">MST kenarı</div>
+        </div>
+        <div class="istatistik-kart">
+          <div class="istatistik-sayi"  id="stat-ekspres">—</div>
+          <div class="istatistik-etiket">Ekspres hat</div>
+        </div>
+      </div>
+
+      <!-- Dinamik içerik: KNN listesi veya rota sonucu buraya yazılır -->
+      <div id="dinamik-bolum">
+        <div class="bolum-baslik">Bilgi</div>
+        <div class="bos-durum">Haritaya tıklayın</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =====================================================
+       SAĞ TARAF — HARİTA
+       ===================================================== -->
+  <div id="harita-alani">
+
+    <canvas id="harita-canvas"></canvas>
+
+    <div id="zoom-butonlar">
+      <button class="zoom-btn" id="zoom-in-btn"    title="Yakınlaştır">+</button>
+      <button class="zoom-btn" id="zoom-out-btn"   title="Uzaklaştır">âˆ’</button>
+      <button class="zoom-btn" id="zoom-reset-btn" title="Sıfırla">âŠ™</button>
+    </div>
+
+    <div id="algoritma-etiketi">âš™ A* (Sezgisel) | Sokak Takipli</div>
+
+    <div id="tooltip"></div>
+
+    <div id="lejant">
+      <div class="lejant-satiri"><div class="lejant-renk" style="background:#ddd5c8"></div>Bina</div>
+      <div class="lejant-satiri"><div class="lejant-renk" style="background:#b8d898"></div>Park</div>
+      <div class="lejant-satiri"><div class="lejant-renk" style="background:#a8cce8"></div>Su</div>
+      <div class="lejant-satiri"><div class="lejant-renk" style="background:#fff;border:1px solid #ccc"></div>Yol</div>
+      <div class="lejant-satiri"><div class="lejant-daire" style="background:#2563eb"></div>İstasyon</div>
+      <div class="lejant-satiri"><div class="lejant-daire" style="background:#16a34a"></div>Başlangıç/Hedef</div>
+      <div class="lejant-satiri"><div class="lejant-daire" style="background:#d02e10"></div>Rota üzerinde</div>
+    </div>
+
+    <div id="durum-cubugu">Hazır</div>
+
+  </div>
+
+</div>
+
+<script>
+
+  // =============================================================
+  // YARDIMCI FONKSİYONLAR
+  // =============================================================
+
+  // Tohum tabanlı pseudo-rastgele sayı üreteci.
+  // Ayni tohum verildiğinde hep aynı şehir oluşur.
+  // XOR-Shift algoritması: hızlı ve yeterince "rastgele".
+  function tohumluRastgele(tohum) {
+    var s = tohum >>> 0; // işaretsiz 32-bit tamsayı çevir
+    return function() {
+      s = (s ^ (s << 13)) >>> 0;
+      s = (s ^ (s >>> 17)) >>> 0;
+      s = (s ^ (s << 5))  >>> 0;
+      // 0-1 arasına normalize et
+      return s / 0xffffffff;
+    };
+  }
+
+  // Değeri min-max arasında tut (sınır kontrolu)
+  function sinirla(deger, min, maks) {
+    if (deger < min) return min;
+    if (deger > maks) return maks;
+    return deger;
+  }
+
+  // Shoelace formülü: çokgenin imzalı alanı
+  // Pozitif = CCW (saat yönünü tersi), Negatif = CW (saat yönü).
+  // Arazi bloklarının yönünü anlamak için kullanılır.
+  function cokgenAlani(noktalar) {
+    var alan = 0;
+    for (var i = 0; i < noktalar.length; i++) {
+      var j = (i + 1) % noktalar.length;
+      alan += noktalar[i].x * noktalar[j].y;
+      alan -= noktalar[j].x * noktalar[i].y;
+    }
+    return alan / 2;
+  }
+
+  // Çokgeni içe doğru "miktar" piksel kadar küçült.
+  // Yolların arazi bloklarının üstüne çıkmaması için gerekli.
+  // Her köşeyi komşu kenarlara dik yönde içe taşır.
+  function cokgeniKucult(noktalar, miktar) {
+    var n = noktalar.length;
+    if (n < 3) return noktalar;
+
+    var alan = cokgenAlani(noktalar);
+    if (Math.abs(alan) < 1) return noktalar; // neredeyse sıfır alan, dokunma
+
+    // CCW mi CW mi? İçe küçültme yönünü belirler.
+    var yon = alan > 0 ? 1 : -1;
+
+    // Her kenarın içe bakan normal vektörünü hesapla
+    var normallar = [];
+    for (var i = 0; i < n; i++) {
+      var a = noktalar[i];
+      var b = noktalar[(i + 1) % n];
+      var uzunluk = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      normallar.push({
+        x: -(b.y - a.y) / uzunluk * yon,
+        y:  (b.x - a.x) / uzunluk * yon
+      });
+    }
+
+    // Her köşeyi iki komşu normal'ın açıortayı yönünde içe taş
+    var sonucNoktalar = [];
+    for (var i = 0; i < n; i++) {
+      var onceki = normallar[(i - 1 + n) % n];
+      var simdi  = normallar[i];
+      var bx = onceki.x + simdi.x;
+      var by = onceki.y + simdi.y;
+      var bl = Math.hypot(bx, by) || 1;
+      // Köşe açısıni telafi et
+      var nokta = (bx / bl) * simdi.x + (by / bl) * simdi.y;
+      var d = Math.abs(nokta) > 0.08 ? miktar / nokta : miktar * 2;
+      sonucNoktalar.push({
+        x: noktalar[i].x + (bx / bl) * d,
+        y: noktalar[i].y + (by / bl) * d
+      });
+    }
+    return sonucNoktalar;
+  }
+
+  // =============================================================
+  // HARİTA OLUŞTURUCU
+  // Sokak ağı + planar yüz tespiti.
+  // Yaklaşım:
+  //   1. Hafif bozulmuş ızgara → organik sokak düğümleri
+  //   2. Düğümleri kenarlarla bağla (yatay, dikey, çapraz)
+  //   3. Half-Edge yöntemi ile kapalı alanları (yüzleri) çıkar
+  //   4. Her yüze bina/park/su tipi ata
+  // =============================================================
+
+  var sehirDugumler      = [];  // sokak kavşakları
+  var sehirKenarlar      = [];  // sokak bağlantıları
+  var sehirYuzler        = [];  // arazi blokları
+  var kullanilanKenarlar = new Set(); // sadece transit hatların geçtiği sokaklar
+  var haritaGenislik     = 800;
+  var haritaYukseklik    = 600;
+  var sehirTohumu        = 1;
+  var yuzTipleriOnbellek = new Map(); // yüz tipi önbelleği (face type cache)
+
+  function sehirOlustur(genislik, yukseklik, tohum) {
+    // Her çağrıda sıfırdan başla
+    var r = tohumluRastgele(tohum);
+    sehirDugumler      = [];
+    sehirKenarlar      = [];
+    sehirYuzler        = [];
+    kullanilanKenarlar = new Set();
+    yuzTipleriOnbellek.clear();
+    haritaGenislik     = genislik;
+    haritaYukseklik    = yukseklik;
+    sehirTohumu        = tohum;
+
+    var SUTUN = 11;
+    var SATIR = 8;
+    var hucreBoy = genislik  / SUTUN;
+    var hucreCap = yukseklik / SATIR;
+
+    // ---- 1. Düğüm oluşturma ----
+    // Kenar düğümler harita sınırında sabit (kaymaz).
+    // İç düğümler %48 hücre boyutu kadar rastgele kayabilir.
+    // Bu kaydırma organik/gerçekçi sokak görünümü sağlar.
+    var izgara = [];
+    for (var satir = 0; satir <= SATIR; satir++) {
+      izgara.push([]);
+      for (var sutun = 0; sutun <= SUTUN; sutun++) {
+        var kenardaMi = (sutun === 0 || sutun === SUTUN || satir === 0 || satir === SATIR);
+        var jx = kenardaMi ? 0 : (r() - 0.5) * hucreBoy * 0.48;
+        var jy = kenardaMi ? 0 : (r() - 0.5) * hucreCap * 0.48;
+        var yeniDugum = {
+          x:  sinirla(sutun * hucreBoy + jx, 2, genislik  - 2),
+          y:  sinirla(satir * hucreCap + jy, 2, yukseklik - 2),
+          id: sehirDugumler.length
+        };
+        izgara[satir].push(yeniDugum);
+        sehirDugumler.push(yeniDugum);
+      }
+    }
+
+    // ---- 2. Kenar oluşturma ----
+    var kenarSeti = new Set();
+
+    function kenarEkle(a, b, anaYolMu) {
+      if (!a || !b) return;
+      // Yinelemeyi önlmek için küçük id her zaman önce
+      var kucuk = Math.min(a.id, b.id);
+      var buyuk = Math.max(a.id, b.id);
+      var anahtar = kucuk + '_' + buyuk;
+      if (kenarSeti.has(anahtar)) return;
+      kenarSeti.add(anahtar);
+      sehirKenarlar.push({ a: a, b: b, main: anaYolMu, key: anahtar });
+    }
+
+    // Yatay: Çift satırlar ana cadde
+    // Dikey: Çift sütunlar ana cadde
+    for (var satir = 0; satir <= SATIR; satir++) {
+      for (var sutun = 0; sutun <= SUTUN; sutun++) {
+        if (sutun < SUTUN) kenarEkle(izgara[satir][sutun], izgara[satir][sutun + 1], satir % 2 === 0);
+        if (satir < SATIR) kenarEkle(izgara[satir][sutun], izgara[satir + 1][sutun], sutun % 2 === 0);
+      }
+    }
+
+    // %38 ihtimalle çapraz bağlantı — sokakları organik yapar
+    for (var satir = 0; satir < SATIR; satir++) {
+      for (var sutun = 0; sutun < SUTUN; sutun++) {
+        if (r() < 0.38) {
+          if (r() < 0.5) kenarEkle(izgara[satir][sutun],     izgara[satir + 1][sutun + 1], false);
+          else            kenarEkle(izgara[satir][sutun + 1], izgara[satir + 1][sutun],     false);
+        }
+      }
+    }
+
+    // ---- 3. Arazi bloklarını çıkar ----
+    sehirYuzler = yuzleriCikar();
+  }
+
+  // Half-Edge yöntemi ile planar grafın kapalı yüzlerini bul.
+  // Her kenarın iki yönü (a→b ve b→a) denenir.
+  // Her yönden "gelen açıya göre en sola dön" kuralıyla çokgen oluşturulur.
+  // Oluşan her çokgen bir arazi bloğunu temsil eder.
+  function yuzleriCikar() {
+    // Komşuluk listesi: her düğüm için komşu dizisi    var komsular = {};
+    for (var i = 0; i < sehirDugumler.length; i++) {
+      komsular[sehirDugumler[i].id] = [];
+    }
+    for (var i = 0; i < sehirKenarlar.length; i++) {
+      var kenar = sehirKenarlar[i];
+      komsular[kenar.a.id].push(kenar.b);
+      komsular[kenar.b.id].push(kenar.a);
+    }
+
+    // Her düğümün komşularını açıya göre sırala (sol-önce kuralı için şart)
+    for (var i = 0; i < sehirDugumler.length; i++) {
+      var dugum = sehirDugumler[i];
+      komsular[dugum.id].sort(function(a, b) {
+        return Math.atan2(a.y - dugum.y, a.x - dugum.x) -
+               Math.atan2(b.y - dugum.y, b.x - dugum.x);
+      });
+    }
+
+    var ziyaretEdilen = new Set();
+    var bulunanYuzler = [];
+
+    for (var ki = 0; ki < sehirKenarlar.length; ki++) {
+      var kenar = sehirKenarlar[ki];
+      // Her kenar için iki yön dene
+      var yonler = [[kenar.a, kenar.b], [kenar.b, kenar.a]];
+
+      for (var yi = 0; yi < yonler.length; yi++) {
+        var bas = yonler[yi][0];
+        var hed = yonler[yi][1];
+
+        if (ziyaretEdilen.has(bas.id + '->' + hed.id)) continue;
+
+        // Çokgeni adım adım oluştur
+        var yuzNoktalar  = [];
+        var mevcutDugum  = bas;
+        var oncekiDugum  = hed;
+        var donguSayaci  = 0;
+        var gecerliyMi   = true;
+
+        while (donguSayaci++ < 80) {
+          ziyaretEdilen.add(oncekiDugum.id + '->' + mevcutDugum.id);
+          yuzNoktalar.push({ x: mevcutDugum.x, y: mevcutDugum.y });
+
+          var komsularListesi = komsular[mevcutDugum.id];
+          if (!komsularListesi || komsularListesi.length === 0) { gecerliyMi = false; break; }
+
+          // Gelen yönün tersine göre en sola dönen komşuyu seç
+          var gelenAci   = Math.atan2(oncekiDugum.y - mevcutDugum.y, oncekiDugum.x - mevcutDugum.x);
+          var enIyiAci   = -Infinity;
+          var sonrakiDgm = null;
+
+          for (var ki2 = 0; ki2 < komsularListesi.length; ki2++) {
+            var komsu = komsularListesi[ki2];
+            if (komsu.id === oncekiDugum.id) continue;
+            var aci = Math.atan2(komsu.y - mevcutDugum.y, komsu.x - mevcutDugum.x) - gelenAci;
+            while (aci <= -Math.PI) aci += 2 * Math.PI;
+            while (aci >   Math.PI) aci -= 2 * Math.PI;
+            if (aci > enIyiAci) { enIyiAci = aci; sonrakiDgm = komsu; }
+          }
+
+          if (!sonrakiDgm) { gecerliyMi = false; break; }
+          oncekiDugum = mevcutDugum;
+          mevcutDugum = sonrakiDgm;
+          if (mevcutDugum.id === bas.id) break; // başa döndük
+        }
+
+        if (!gecerliyMi || yuzNoktalar.length < 3) continue;
+
+        var alan = Math.abs(cokgenAlani(yuzNoktalar));
+        if (alan < 15 || alan > haritaGenislik * haritaYukseklik * 0.20) continue;
+
+        var mx = 0, my = 0;
+        for (var ni = 0; ni < yuzNoktalar.length; ni++) { mx += yuzNoktalar[ni].x; my += yuzNoktalar[ni].y; }
+        mx /= yuzNoktalar.length; my /= yuzNoktalar.length;
+        if (mx < 1 || mx > haritaGenislik - 1 || my < 1 || my > haritaYukseklik - 1) continue;
+
+        bulunanYuzler.push({ noktalar: yuzNoktalar, alan: alan, merkezX: mx, merkezY: my });
+      }
+    }
+    return bulunanYuzler;
+  }
+
+  // Yüz tipi belirle ve önbellekte sakla.
+  // Merkeze yakın yüzler daha çok ticari yapılaşma gösterir.
+  // Aynı tohum = aynı şehir = aynı tip.
+  function yuzTipiBul(indeks) {
+    if (yuzTipleriOnbellek.has(indeks)) return yuzTipleriOnbellek.get(indeks);
+    var yuz = sehirYuzler[indeks];
+    var r   = tohumluRastgele(Math.floor(yuz.merkezX * 7 + yuz.merkezY * 13 + sehirTohumu) | 0);
+    var rv  = r();
+    var uzaklik = Math.hypot(yuz.merkezX - haritaGenislik / 2, yuz.merkezY - haritaYukseklik / 2) /
+                  Math.hypot(haritaGenislik / 2, haritaYukseklik / 2);
+    var tip;
+    if      (rv < 0.12)                      tip = 'park';    // %12 park
+    else if (rv < 0.16)                      tip = 'su';      // %4 su
+    else if (uzaklik < 0.30 && rv < 0.70)   tip = 'ticari';  // merkezdeyse %70 ihtimalle ticari
+    else                                     tip = 'bina';    // geri kalan bina
+    yuzTipleriOnbellek.set(indeks, tip);
+    return tip;
+  }
+
+  // =============================================================
+  // VERİ YAPILARI — C# sınıflarının JS karşılıkları
+  // =============================================================
+
+  // İstasyon (Station sınıfının JS versiyonu)
+  // C#'ta: private HashTable<string, object> properties ile aynı mantık
+  function Istasyon(id, x, y) {
+    this.id   = id;
+    this.x    = x;
+    this.y    = y;
+    this.isim = 'İst-' + id;
+// C#'taki HashTable'ın JS karşılığı — O(1) erişim    this.ozellikler = {};
+    this.ozellikler['Id']   = id;
+    this.ozellikler['X']    = x;
+    this.ozellikler['Y']    = y;
+    this.ozellikler['Name'] = 'İst-' + id;
+  }
+
+  // Rota (Route sınıfının JS versiyonu)
+  // C#'ta: Distance, Time, Cost hash table içinde saklanır
+  // JS'te de aynı mantık: ozellikler objesi ile
+  function Rota(id, kaynak, hedef) {
+    this.kaynak = kaynak;
+    this.hedef  = hedef;
+    this.mstMi  = true; // Kruskal MST kenarı mı?
+    // C#'taki HashTable<string, object> karşılığı
+    this.ozellikler = {};
+    this.ozellikler['Id']       = id;
+    this.ozellikler['Distance'] = Math.hypot(kaynak.x - hedef.x, kaynak.y - hedef.y);
+    // Zaman ve maliyet: C#'taki MinTime-MaxTime ve MinCost-MaxCost aralığında rastgele
+    this.ozellikler['Time']     = 10 + Math.random() * 110;   // 10-120 dk arası
+    this.ozellikler['Cost']     = 2  + Math.random() * 48;    // 2-50 TL arası
+    // Kolay erişim için kısayollar
+    this.mesafe  = this.ozellikler['Distance'];
+    this.zaman   = this.ozellikler['Time'];
+    this.maliyet = this.ozellikler['Cost'];
+    // Edge bundling ara noktaları (PathPoints listesi)
+    // C#'ta: public List<(double X, double Y)> PathPoints
+    this.yolNoktalari = [];
+    // Sokak ağında kullanılan kenar anahtarları
+    this.kullanilanYollar = [];
+  }
+
+  // Union-Find (Kruskal MST için)
+  // C#'ta da aynı şekilde parent dizisi ile implement edildi
+  function UnionFind(n) {
+    this.ebeveyn = [];
+    for (var i = 0; i < n; i++) this.ebeveyn[i] = i;
+  }
+    // Yol sıkıştırmalı bul — O(α(n)) ≈ sabit zaman
+    UnionFind.prototype.bul = function(i) {
+    if (this.ebeveyn[i] !== i) this.ebeveyn[i] = this.bul(this.ebeveyn[i]);
+    return this.ebeveyn[i];
+  };
+  // Birleştir — iki bileşeni tek bileşen yap
+  UnionFind.prototype.birlestir = function(a, b) {
+    var ra = this.bul(a), rb = this.bul(b);
+    if (ra === rb) return false; // zaten aynı bileşen = döngü oluşur
+    this.ebeveyn[ra] = rb;
+    return true;
+  };
+
+  // =============================================================
+  // SOKAK AĞI KOMŞULUĞU
+  // A* sokak takibi için gerekli.
+  // C#'taki locator.cs'de KD-Tree tamamlanınca birlikte çalışacak.
+  // =============================================================
+
+  var sokakKomsuluk = {}; // dugumId -> [{dugum, agirlik, kenarAnahtar}]
+  var dugumHaritasi = {}; // dugumId -> dugum (O(1) erişim için hash table mantığı)
+
+  function sokakKomsulugunuOlustur() {
+    sokakKomsuluk = {};
+    dugumHaritasi = {};
+    for (var i = 0; i < sehirDugumler.length; i++) {
+      sokakKomsuluk[sehirDugumler[i].id] = [];
+      dugumHaritasi[sehirDugumler[i].id] = sehirDugumler[i];
+    }
+    for (var i = 0; i < sehirKenarlar.length; i++) {
+      var kenar   = sehirKenarlar[i];
+      var agirlik = Math.hypot(kenar.a.x - kenar.b.x, kenar.a.y - kenar.b.y);
+      sokakKomsuluk[kenar.a.id].push({ dugum: kenar.b, agirlik: agirlik, kenarAnahtar: kenar.key });
+      sokakKomsuluk[kenar.b.id].push({ dugum: kenar.a, agirlik: agirlik, kenarAnahtar: kenar.key });
+    }
+  }
+
+  // En yakın sokak düğümünü bul — şimdilik doğrusal tarama O(n)
+  // locator.cs'deki KD-Tree tamamlanınca O(log n) olacak
+  function enYakinDugum(x, y) {
+    var enYakin      = null;
+    var enKisaMesafe = Infinity;
+    for (var i = 0; i < sehirDugumler.length; i++) {
+      var d = Math.hypot(sehirDugumler[i].x - x, sehirDugumler[i].y - y);
+      if (d < enKisaMesafe) { enKisaMesafe = d; enYakin = sehirDugumler[i]; }
+    }
+    return enYakin;
+  }
+
+  // =============================================================
+  // A* SOKAK TAKIP ALGORİTMASI
+  //
+  // İki sokak düğümü arasında en kısa yolu bulur.
+  // Transit istasyonları sokak ağına "yapıştırmak" için kullanılır.
+  //
+  // C#'taki a_star.cs -> FindPath() ile aynı mantık.
+  // Fark: burada sokak düğümleri arasında çalışıyor,
+  //        a_star.cs transit istasyonlar arasında çalışıyor.
+  //
+  // Sezgisel (heuristic): öklid mesafesi — asla gerçek maliyeti aşmaz
+  // Bu "kabul edilebilirlik" garantisi optimallığı sağlar.
+  // =============================================================
+  function aStarSokak(kaynakDgm, hedefDgm) {
+    if (!kaynakDgm || !hedefDgm) return { noktalar: [], anahtarlar: [] };
+    if (kaynakDgm.id === hedefDgm.id) return { noktalar: [], anahtarlar: [] };
+
+    // g[id]: başlangıçtan id'ye gerçek maliyet
+    var gMaliyet    = {};
+    var oncekiDgm   = {}; // yolu geri izlemek için
+    var oncekiKenar = {}; // hangi kenar üzerinden gelindi
+    var acikKume    = new Set([kaynakDgm.id]);
+
+    for (var i = 0; i < sehirDugumler.length; i++) {
+      gMaliyet[sehirDugumler[i].id] = Infinity;
+    }
+    gMaliyet[kaynakDgm.id] = 0;
+
+    // A* ana döngüsü
+    while (acikKume.size > 0) {
+      // Açık kümeden f = g + h değeri en küçük düğümü seç
+      // Gerçek implementasyonda bu min-heap olmalı — şimdilik lineer tarama
+      var enIyiId = null;
+      var enIyiF  = Infinity;
+      acikKume.forEach(function(id) {
+        var h = Math.hypot(dugumHaritasi[id].x - hedefDgm.x, dugumHaritasi[id].y - hedefDgm.y);
+        var f = gMaliyet[id] + h; // f = gerçek maliyet + sezgisel
+        if (f < enIyiF) { enIyiF = f; enIyiId = id; }
+      });
+
+      if (enIyiId === null || enIyiId === hedefDgm.id) break;
+      acikKume.delete(enIyiId);
+
+      // Komşuları güncelle
+      var komsular = sokakKomsuluk[enIyiId] || [];
+      for (var ki = 0; ki < komsular.length; ki++) {
+        var komsuBilgi  = komsular[ki];
+        var yeniMaliyet = gMaliyet[enIyiId] + komsuBilgi.agirlik;
+        if (yeniMaliyet < gMaliyet[komsuBilgi.dugum.id]) {
+          // Daha iyi yol bulundu — güncelle
+          gMaliyet[komsuBilgi.dugum.id]    = yeniMaliyet;
+          oncekiDgm[komsuBilgi.dugum.id]   = enIyiId;
+          oncekiKenar[komsuBilgi.dugum.id] = komsuBilgi.kenarAnahtar;
+          acikKume.add(komsuBilgi.dugum.id);
+        }
+      }
+    }
+
+    // Yolu geri izle: hedeften başa
+    var yolNoktalar  = [];
+    var yolAnahtarlar = [];
+    var mevcutId     = hedefDgm.id;
+    var guvenlik     = 0;
+    while (mevcutId !== undefined && mevcutId !== kaynakDgm.id && guvenlik++ < 600) {
+      yolNoktalar.unshift(dugumHaritasi[mevcutId]);
+      if (oncekiKenar[mevcutId]) yolAnahtarlar.unshift(oncekiKenar[mevcutId]);
+      mevcutId = oncekiDgm[mevcutId];
+    }
+    if (mevcutId === kaynakDgm.id) yolNoktalar.unshift(dugumHaritasi[kaynakDgm.id]);
+    return { noktalar: yolNoktalar, anahtarlar: yolAnahtarlar };
+  }
+
+  // =============================================================
+  // FORCE-DIRECTED EDGE BUNDLING
+  //
+  // C#'taki multi_graph_generator.cs -> ApplyBundlingLogic() ile aynı mantık.
+  // Dijkstra sonuçlarını görsel olarak kavisleştirmek için kullanılır.
+  // A* zaten sokak ağını takip ettiği için bundling gerekmez.
+  //
+  // Nasıl çalışır:
+  //   1. Her rota 8 parçaya bölünür
+  //   2. Her iterasyonda:
+  //      - Yay kuvveti: noktaları düzleştirmeye çalışır
+  //      - Çekim kuvveti: yakın rotaların noktaları birbirini çeker
+  //   3. 25 iterasyon sonrası rotalar kavislenmiş görünür
+  // =============================================================
+  function edgeBundlingUygula(rotalar) {
+    var BOLUM_SAYISI = 8;    // C#'ta: subdivisions = 8
+    var ITERASYON    = 25;   // C#'ta: iterations = 40 (biz 25 yaptık, yeterince kavisli)
+    var ADIM         = 0.07; // C#'ta: step = 0.1
+    var ETKI_ALANI   = 45;   // C#'ta: dist < 40
+
+    // Her rotayı eşit aralıklı noktalara böl
+    for (var i = 0; i < rotalar.length; i++) {
+      var rota = rotalar[i];
+      rota.yolNoktalari = [];
+      for (var b = 0; b <= BOLUM_SAYISI; b++) {
+        var t = b / BOLUM_SAYISI;
+        rota.yolNoktalari.push({
+          x: rota.kaynak.x + (rota.hedef.x - rota.kaynak.x) * t,
+          y: rota.kaynak.y + (rota.hedef.y - rota.kaynak.y) * t
+        });
+      }
+    }
+
+    // Kuvvet simülasyonu
+    for (var iter = 0; iter < ITERASYON; iter++) {
+      for (var i = 0; i < rotalar.length; i++) {
+        var r1 = rotalar[i];
+        // Uç noktalar sabit (0 ve BOLUM_SAYISI indeksleri = istasyonlar)
+        for (var b = 1; b < BOLUM_SAYISI; b++) {
+          var kuvvetX = 0, kuvvetY = 0;
+
+          // Yay kuvveti: komşu noktaların ortasına doğru çek
+          kuvvetX += r1.yolNoktalari[b - 1].x + r1.yolNoktalari[b + 1].x - 2 * r1.yolNoktalari[b].x;
+          kuvvetY += r1.yolNoktalari[b - 1].y + r1.yolNoktalari[b + 1].y - 2 * r1.yolNoktalari[b].y;
+
+          // Çekim kuvveti: etki alanındaki diğer rotaların noktaları çeker
+          for (var j = 0; j < rotalar.length; j++) {
+            if (i === j) continue;
+            var r2  = rotalar[j];
+            var dx  = r2.yolNoktalari[b].x - r1.yolNoktalari[b].x;
+            var dy  = r2.yolNoktalari[b].y - r1.yolNoktalari[b].y;
+            var uzk = Math.hypot(dx, dy);
+            if (uzk < ETKI_ALANI && uzk > 0.5) {
+              kuvvetX += dx / uzk;
+              kuvvetY += dy / uzk;
+            }
+          }
+
+          // Noktayı yeni konumuna taşı
+          r1.yolNoktalari[b].x += kuvvetX * ADIM;
+          r1.yolNoktalari[b].y += kuvvetY * ADIM;
+        }
+      }
+    }
+  }
+
+  function rotayiSokaklaraBagla(rota) {
+    var kaynakDgm = enYakinDugum(rota.kaynak.x, rota.kaynak.y);
+    var hedefDgm  = enYakinDugum(rota.hedef.x,  rota.hedef.y);
+    var sonuc     = aStarSokak(kaynakDgm, hedefDgm);
+
+    if (sonuc.noktalar.length > 1) {
+      rota.yolNoktalari = [{ x: rota.kaynak.x, y: rota.kaynak.y }]
+        .concat(sonuc.noktalar)
+        .concat([{ x: rota.hedef.x, y: rota.hedef.y }]);
+      rota.kullanilanYollar = sonuc.anahtarlar;
+
+      for (var k = 0; k < sonuc.anahtarlar.length; k++) {
+        kullanilanKenarlar.add(sonuc.anahtarlar[k]);
+      }
+      return;
+    }
+
+    rota.yolNoktalari = [
+      { x: rota.kaynak.x, y: rota.kaynak.y },
+      { x: rota.hedef.x,  y: rota.hedef.y }
+    ];
+    rota.kullanilanYollar = [];
+  }
+
+  // =============================================================
+  // TRANSİT GRAF OLUŞTURUCU
+  //
+  // C#'taki GraphGenerator.CreateFullGraph() ile aynı mantık:
+  //   1. Box-Muller -> normal dağılımlı istasyon yerleşimi
+  //   2. Kruskal MST -> bağlantı garantisi
+  //   3. Ekspres hatlar -> multigraph
+  //   4. Algoritmaya göre görselleştir:
+  //      - Dijkstra -> Edge Bundling (kavisli)
+  //      - A*       -> Sokak takibi (gerçekçi yol)
+  // =============================================================
+
+  var aktifAlgoritma    = 'astar';
+  // Dijkstra kriter seçimi — C#'taki OptimizationCriteria enum'ı ile eşleşiyor
+  var aktifKriter       = 'mesafe'; // 'mesafe' | 'zaman' | 'maliyet' | 'aktarma'
+
+  function transitGrafiOlustur(istasyonSayisi, esik) {
+    sokakKomsulugunuOlustur();
+    kullanilanKenarlar = new Set();
+
+    // ---- Box-Muller benzeri istasyon seçimi ----
+    // C#'ta: Box-Muller Transform ile normal dağılım
+    // JS'te: Gauss skoru ile merkeze yakın kavşakları önceliklendir
+    var puanliDugumler = [];
+    for (var i = 0; i < sehirDugumler.length; i++) {
+      var dgm = sehirDugumler[i];
+      var dx  = (dgm.x - haritaGenislik  / 2) / (haritaGenislik  / 3);
+      var dy  = (dgm.y - haritaYukseklik / 2) / (haritaYukseklik / 3);
+      puanliDugumler.push({ dugum: dgm, puan: Math.exp(-(dx*dx + dy*dy) * 0.6) * (0.4 + Math.random() * 0.6) });
+    }
+    puanliDugumler.sort(function(a, b) { return b.puan - a.puan; });
+    var havuz = puanliDugumler.slice(0, Math.floor(puanliDugumler.length * 0.8));
+    havuz.sort(function() { return Math.random() - 0.5; }); // karıştır
+
+    // İstasyonları kavşaklara yerleştir
+    var istasyonlar = [];
+    var alinacak    = Math.min(istasyonSayisi, havuz.length);
+    for (var i = 0; i < alinacak; i++) {
+      istasyonlar.push(new Istasyon(i, havuz[i].dugum.x, havuz[i].dugum.y));
+    }
+
+    // ---- Kruskal MST ----
+    // Tüm olası kenarları oluştur, mesafeye göre sırala
+    var adayKenarlar = [];
+    var rotaIdSayaci = 0;
+    for (var i = 0; i < istasyonlar.length; i++) {
+      for (var j = i + 1; j < istasyonlar.length; j++) {
+        adayKenarlar.push(new Rota(rotaIdSayaci++, istasyonlar[i], istasyonlar[j]));
+      }
+    }
+    adayKenarlar.sort(function(a, b) { return a.mesafe - b.mesafe; });
+
+    // Union-Find ile döngüsüz MST seç
+    var uf     = new UnionFind(istasyonlar.length);
+    var rotalar = [];
+    for (var i = 0; i < adayKenarlar.length; i++) {
+      var aday = adayKenarlar[i];
+      if (uf.birlestir(aday.kaynak.id, aday.hedef.id)) {
+        // MST kenarı
+        aday.mstMi = true;
+        rotalar.push(aday);
+      } else if (aday.mesafe < esik && Math.random() > 0.9) {
+        // %10 ihtimalle ekspres hat (multigraph)
+        aday.mstMi = false;
+        rotalar.push(aday);
+      }
+    }
+
+    // ---- C#'taki CreateRandomRoute() benzeri: kopya rotalar ----
+    // DuplicateMin=0.1, DuplicateMax=0.3 arası kopya rota ekle
+    var n             = rotalar.length;
+    var kopyaSayisi   = Math.floor(n * (0.1 + Math.random() * 0.2));
+    for (var i = 0; i < kopyaSayisi; i++) {
+      if (n === 0) break;
+      var bazRota = rotalar[Math.floor(Math.random() * n)];
+      var kopyaRota = new Rota(rotaIdSayaci++, bazRota.kaynak, bazRota.hedef);
+      kopyaRota.mstMi = false;
+      rotalar.push(kopyaRota);
+    }
+
+    // ---- Rotaları gerçek sokak ağı üzerinden geçir ----
+    // Dijkstra hangi transit kenarların seçileceğini belirler; çizim yine yol ağını takip eder.
+    for (var i = 0; i < rotalar.length; i++) {
+      rotayiSokaklaraBagla(rotalar[i]);
+    }
+
+    return { istasyonlar: istasyonlar, rotalar: rotalar };
+  }
+
+  // =============================================================
+  // DİJKSTRA — TRANSİT GRAF ÜZERİNDE EN KISA YOL
+  //
+  // C#'taki dijkstra.cs -> FindShortestPath() ile aynı mantık.
+  // 4 kriter destekler: mesafe, zaman, maliyet, aktarma
+  // C#'ta OptimizationCriteria enum'ı ile kontrol edilir.
+  //
+  // Fark: C# tam implement edilmiş, JS burada da çalışıyor
+  // ama asıl doğrulama C# tarafından gelecek.
+  // =============================================================
+  function dijkstraTransit(istasyonlar, rotalar, baslangicId, hedefId, kriter) {
+    // Her istasyona maliyet: başlangıçta sonsuz
+    var maliyetler    = {};
+    var oncekiDgm     = {}; // yolu geri izlemek için
+    var oncekiRota    = {}; // hangi rota üzerinden gelindi
+    var ziyaretEdilen = new Set();
+
+    for (var i = 0; i < istasyonlar.length; i++) {
+      maliyetler[istasyonlar[i].id] = Infinity;
+    }
+    maliyetler[baslangicId] = 0;
+
+    // Komşuluk listesi — C#'taki GetOutgoingRoutes() benzeri
+    // AdjacencyList HashTable'ın JS karşılığı
+    var komsuListesi = {};
+    for (var i = 0; i < istasyonlar.length; i++) komsuListesi[istasyonlar[i].id] = [];
+    for (var i = 0; i < rotalar.length; i++) {
+      var r = rotalar[i];
+      komsuListesi[r.kaynak.id].push({ ist: r.hedef,  rota: r });
+      komsuListesi[r.hedef.id].push({ ist: r.kaynak, rota: r });
+    }
+
+    // Min-heap yerine öncelik kuyruğu (basit dizi — C#'ta PriorityQueue kullanılıyor)
+    var oncelikKuyrugu = [{ id: baslangicId, maliyet: 0 }];
+
+    while (oncelikKuyrugu.length > 0) {
+      // En düşük maliyetli düğümü seç (PriorityQueue.Dequeue() benzeri)
+      oncelikKuyrugu.sort(function(a, b) { return a.maliyet - b.maliyet; });
+      var enIyi = oncelikKuyrugu.shift();
+
+      if (ziyaretEdilen.has(enIyi.id)) continue;
+      ziyaretEdilen.add(enIyi.id);
+      if (enIyi.id === hedefId) break;
+
+      var komsular = komsuListesi[enIyi.id] || [];
+      for (var ki = 0; ki < komsular.length; ki++) {
+        var komsu   = komsular[ki];
+        var komsuId = komsu.ist.id;
+        if (ziyaretEdilen.has(komsuId)) continue;
+
+        // C#'taki switch(criteria) benzeri kriter seçimi
+        var rotaAgirligi;
+        if      (kriter === 'mesafe')  rotaAgirligi = komsu.rota.mesafe;
+        else if (kriter === 'zaman')   rotaAgirligi = komsu.rota.zaman;
+        else if (kriter === 'maliyet') rotaAgirligi = komsu.rota.maliyet;
+        else                           rotaAgirligi = 1; // aktarma: her durak 1
+
+        var yeniMaliyet = maliyetler[enIyi.id] + rotaAgirligi;
+
+        if (yeniMaliyet < maliyetler[komsuId]) {
+          maliyetler[komsuId]  = yeniMaliyet;
+          oncekiDgm[komsuId]   = enIyi.id;
+          oncekiRota[komsuId]  = komsu.rota;
+          oncelikKuyrugu.push({ id: komsuId, maliyet: yeniMaliyet });
+        }
+      }
+    }
+
+    // Yolu geri izle — C#'taki path.Reverse() benzeri
+    var yol        = [];
+    var yolRotalar = [];
+    var adim       = hedefId;
+    var guvenlik   = 0;
+    while (adim !== undefined && adim !== baslangicId && guvenlik++ < 500) {
+      yol.unshift(adim);
+      if (oncekiRota[adim]) yolRotalar.unshift(oncekiRota[adim]);
+      adim = oncekiDgm[adim];
+    }
+    if (adim === baslangicId) yol.unshift(baslangicId);
+
+    return {
+      yol:          yol,
+      yolRotalar:   yolRotalar,
+      toplamMaliyet: maliyetler[hedefId],
+      kriter:       kriter
+    };
+  }
+
+  function aStarTransit(istasyonlar, rotalar, baslangicId, hedefId) {
+    var istasyonHaritasi = {};
+    var gMaliyetler      = {};
+    var oncekiDgm        = {};
+    var oncekiRota       = {};
+    var kapaliKume       = new Set();
+
+    for (var i = 0; i < istasyonlar.length; i++) {
+      istasyonHaritasi[istasyonlar[i].id] = istasyonlar[i];
+      gMaliyetler[istasyonlar[i].id] = Infinity;
+    }
+
+    var baslangic = istasyonHaritasi[baslangicId];
+    var hedef     = istasyonHaritasi[hedefId];
+    if (!baslangic || !hedef) {
+      return { yol: [], yolRotalar: [], toplamMaliyet: Infinity, kriter: 'mesafe' };
+    }
+
+    function sezgi(istasyon) {
+      return Math.hypot(istasyon.x - hedef.x, istasyon.y - hedef.y);
+    }
+
+    var komsuListesi = {};
+    for (var i = 0; i < istasyonlar.length; i++) komsuListesi[istasyonlar[i].id] = [];
+    for (var i = 0; i < rotalar.length; i++) {
+      var r = rotalar[i];
+      komsuListesi[r.kaynak.id].push({ ist: r.hedef,  rota: r });
+      komsuListesi[r.hedef.id].push({ ist: r.kaynak, rota: r });
+    }
+
+    gMaliyetler[baslangicId] = 0;
+    var acikKume = [{ id: baslangicId, f: sezgi(baslangic) }];
+
+    while (acikKume.length > 0) {
+      acikKume.sort(function(a, b) { return a.f - b.f; });
+      var mevcut = acikKume.shift();
+
+      if (kapaliKume.has(mevcut.id)) continue;
+      if (mevcut.id === hedefId) break;
+      kapaliKume.add(mevcut.id);
+
+      var komsular = komsuListesi[mevcut.id] || [];
+      for (var ki = 0; ki < komsular.length; ki++) {
+        var komsu   = komsular[ki];
+        var komsuId = komsu.ist.id;
+        if (kapaliKume.has(komsuId)) continue;
+
+        var yeniMaliyet = gMaliyetler[mevcut.id] + komsu.rota.mesafe;
+        if (yeniMaliyet < gMaliyetler[komsuId]) {
+          gMaliyetler[komsuId] = yeniMaliyet;
+          oncekiDgm[komsuId]   = mevcut.id;
+          oncekiRota[komsuId]  = komsu.rota;
+          acikKume.push({ id: komsuId, f: yeniMaliyet + sezgi(komsu.ist) });
+        }
+      }
+    }
+
+    var yol        = [];
+    var yolRotalar = [];
+    var adim       = hedefId;
+    var guvenlik   = 0;
+    while (adim !== undefined && adim !== baslangicId && guvenlik++ < 500) {
+      yol.unshift(adim);
+      if (oncekiRota[adim]) yolRotalar.unshift(oncekiRota[adim]);
+      adim = oncekiDgm[adim];
+    }
+    if (adim === baslangicId) yol.unshift(baslangicId);
+
+    return {
+      yol: yol,
+      yolRotalar: yolRotalar,
+      toplamMaliyet: gMaliyetler[hedefId],
+      kriter: 'mesafe'
+    };
+  }
+
+  // =============================================================
+  // KNN — EN YAKIN K İSTASYON
+  //
+  // C#'taki locator.cs'de KD-Tree ile implement edilecek.
+  // Şimdilik doğrusal tarama O(n).
+  // KD-Tree ile O(log n)'e düşecek.
+  // =============================================================
+  function enYakinKIstasyon(istasyonlar, qx, qy, k) {
+    var liste = [];
+    for (var i = 0; i < istasyonlar.length; i++) {
+      liste.push({ ist: istasyonlar[i], d: Math.hypot(istasyonlar[i].x - qx, istasyonlar[i].y - qy) });
+    }
+    liste.sort(function(a, b) { return a.d - b.d; });
+    var sonuc = [];
+    for (var i = 0; i < Math.min(k, liste.length); i++) sonuc.push(liste[i].ist);
+    return sonuc;
+  }
+
+  // =============================================================
+  // CANVAS VE ÇİZİM
+  // Katman sırası:
+  //   1. Zemin rengi (tüm canvas)
+  //   2. Arazi blokları (bina/park/su)
+  //   3. Yollar (sadece transit hatların geçtikleri)
+  //   4. Transit hatlar
+  //   5. İstasyon sembolleri
+  // =============================================================
+
+  var canvas      = document.getElementById('harita-canvas');
+  var ctx         = canvas.getContext('2d');
+  var haritaAlani = document.getElementById('harita-alani');
+
+  // Görüntüleme dönüşümü
+  var offsetX = 0;
+  var offsetY = 0;
+  var olcek   = 1;
+
+  // Seçim durumu
+  var graf            = { istasyonlar: [], rotalar: [] };
+  var seciliBaslangic = null;
+  var seciliHedef     = null;
+  var aktifYol        = null; // Dijkstra sonucu
+  var knnSonuclari    = [];
+  var knnSorguNokta   = null;
+  var seciliIstasyon  = null;
+  var etiketlerGoster = false;
+
+  // Sürükleme durumu
+  var surukleniyorMu       = false;
+  var surukleBaslangic     = { x: 0, y: 0 };
+  var goruntulemeBaslangic = { x: 0, y: 0 };
+
+  function ekrandenDunyaya(ex, ey) {
+    return { x: (ex - offsetX) / olcek, y: (ey - offsetY) / olcek };
+  }
+
+  // Harita çizimi (zemin + arazi + yollar)
+  function haritaCiz() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Tüm canvas zemin rengi — boş piksel kalmaz
+    ctx.fillStyle = '#e8e0d4';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(olcek, olcek);
+
+    ctx.fillStyle = '#e8e0d4';
+    ctx.fillRect(-offsetX / olcek, -offsetY / olcek, canvas.width / olcek, canvas.height / olcek);
+
+    // ---- Arazi Blokları ----
+    for (var i = 0; i < sehirYuzler.length; i++) {
+      var yuz = sehirYuzler[i];
+      var tip = yuzTipiBul(i);
+      var r2  = tohumluRastgele(Math.floor(yuz.merkezX * 3 + yuz.merkezY * 7 + sehirTohumu) | 0);
+      var rv  = r2();
+
+      // Küçük yüzlere az inset, büyüklere daha fazla
+      var insetMiktar;
+      if      (yuz.alan < 200) insetMiktar = 0;
+      else if (yuz.alan < 600) insetMiktar = 1;
+      else                     insetMiktar = 2;
+
+      var cizNoktalar = insetMiktar > 0 ? cokgeniKucult(yuz.noktalar, insetMiktar) : yuz.noktalar;
+      if (cizNoktalar.length < 3) continue;
+
+      ctx.beginPath();
+      ctx.moveTo(cizNoktalar[0].x, cizNoktalar[0].y);
+      for (var j = 1; j < cizNoktalar.length; j++) ctx.lineTo(cizNoktalar[j].x, cizNoktalar[j].y);
+      ctx.closePath();
+
+      if (tip === 'park') {
+        ctx.fillStyle   = 'rgb(' + (128 + Math.floor(rv*20)) + ',' + (192 + Math.floor(rv*25)) + ',' + (88 + Math.floor(rv*20)) + ')';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(90,148,55,0.22)'; ctx.lineWidth = 0.3; ctx.stroke();
+        parkAgaclariCiz(ctx, cizNoktalar, rv);
+      } else if (tip === 'su') {
+        ctx.fillStyle   = 'rgb(' + (128 + Math.floor(rv*20)) + ',' + (185 + Math.floor(rv*20)) + ',' + (212 + Math.floor(rv*15)) + ')';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(70,148,185,0.22)'; ctx.lineWidth = 0.3; ctx.stroke();
+        suDalgasiCiz(ctx, cizNoktalar);
+      } else if (tip === 'ticari') {
+        ctx.fillStyle   = 'rgb(' + (185 + Math.floor(rv*14)) + ',' + (172 + Math.floor(rv*12)) + ',' + (155 + Math.floor(rv*12)) + ')';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(138,128,112,0.22)'; ctx.lineWidth = 0.3; ctx.stroke();
+      } else {
+        var taban = 188 + Math.floor(rv * 22);
+        ctx.fillStyle   = 'rgb(' + taban + ',' + Math.floor(taban*0.96) + ',' + Math.floor(taban*0.90) + ')';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(133,122,108,0.22)'; ctx.lineWidth = 0.3; ctx.stroke();
+        if (yuz.alan > 500) binaDetayCiz(ctx, cizNoktalar, rv, yuz.alan);
+      }
+    }
+
+    // ---- Yollar (sadece transit hatların geçtikleri) ----
+    var kullanilanKenarListesi = [];
+    for (var i = 0; i < sehirKenarlar.length; i++) {
+      if (kullanilanKenarlar.has(sehirKenarlar[i].key)) {
+        kullanilanKenarListesi.push(sehirKenarlar[i]);
+      }
+    }
+
+    // Kalın beyaz yol bandı
+    for (var i = 0; i < kullanilanKenarListesi.length; i++) {
+      var k = kullanilanKenarListesi[i];
+      ctx.beginPath(); ctx.moveTo(k.a.x, k.a.y); ctx.lineTo(k.b.x, k.b.y);
+      ctx.strokeStyle = k.main ? '#ffffff' : '#f5f0e8';
+      ctx.lineWidth   = k.main ? 9 : 5.5;
+      ctx.lineCap     = 'round'; ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+    // Yol kontur çizgisi
+    for (var i = 0; i < kullanilanKenarListesi.length; i++) {
+      var k = kullanilanKenarListesi[i];
+      ctx.beginPath(); ctx.moveTo(k.a.x, k.a.y); ctx.lineTo(k.b.x, k.b.y);
+      ctx.strokeStyle = 'rgba(185,170,150,0.24)';
+      ctx.lineWidth   = k.main ? 10 : 6.5;
+      ctx.globalAlpha = 0.4; ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    // Ana cadde kesik orta çizgisi
+    for (var i = 0; i < kullanilanKenarListesi.length; i++) {
+      var k = kullanilanKenarListesi[i];
+      if (!k.main) continue;
+      ctx.beginPath(); ctx.moveTo(k.a.x, k.a.y); ctx.lineTo(k.b.x, k.b.y);
+      ctx.strokeStyle = 'rgba(180,165,142,0.36)';
+      ctx.lineWidth   = 0.6; ctx.setLineDash([8, 9]); ctx.lineCap = 'round';
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+
+    ctx.restore();
+  }
+
+  function parkAgaclariCiz(ctx, noktalar, rv) {
+    var mx = 0, my = 0;
+    for (var i = 0; i < noktalar.length; i++) { mx += noktalar[i].x; my += noktalar[i].y; }
+    mx /= noktalar.length; my /= noktalar.length;
+    var r2   = tohumluRastgele(Math.floor(mx * rv * 17 + 1) | 0);
+    var yay  = Math.sqrt(Math.abs(cokgenAlani(noktalar))) * 0.3;
+    var sayi = Math.floor(2 + r2() * 4);
+    for (var i = 0; i < sayi; i++) {
+      var a = r2() * Math.PI * 2, d = r2() * yay;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(mx + Math.cos(a)*d, my + Math.sin(a)*d, 3 + r2()*4, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(50,120,35,' + (0.24 + r2()*0.2) + ')';
+      ctx.fill(); ctx.restore();
+    }
+  }
+
+  function suDalgasiCiz(ctx, noktalar) {
+    var mx = 0, my = 0;
+    for (var i = 0; i < noktalar.length; i++) { mx += noktalar[i].x; my += noktalar[i].y; }
+    mx /= noktalar.length; my /= noktalar.length;
+    ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 0.6;
+    for (var i = 0; i < 3; i++) {
+      var oy = (i - 1) * 5;
+      ctx.beginPath();
+      ctx.moveTo(mx - 10, my + oy);
+      ctx.quadraticCurveTo(mx - 3, my + oy - 2, mx, my + oy);
+      ctx.quadraticCurveTo(mx + 3, my + oy + 2, mx + 10, my + oy);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function binaDetayCiz(ctx, noktalar, rv, alan) {
+    var mx = 0, my = 0;
+    for (var i = 0; i < noktalar.length; i++) { mx += noktalar[i].x; my += noktalar[i].y; }
+    mx /= noktalar.length; my /= noktalar.length;
+    var boyut  = Math.sqrt(alan) * 0.16;
+    var satir  = Math.max(1, Math.floor(boyut / 5));
+    var sutun  = Math.max(1, Math.floor(boyut / 4));
+    ctx.save(); ctx.strokeStyle = 'rgba(138,148,168,0.28)'; ctx.lineWidth = 0.3;
+    for (var s = 0; s < satir; s++) {
+      for (var c = 0; c < sutun; c++) {
+        ctx.strokeRect(
+          mx - boyut/2 + c*(boyut/sutun) + 1, my - boyut/2 + s*(boyut/satir) + 1,
+          boyut/sutun - 2, boyut/satir - 2
+        );
+      }
+    }
+    ctx.restore();
+  }
+
+  // Transit hatları ve istasyonları çiz
+  function transitCiz() {
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(olcek, olcek);
+
+    // Aktif yoldaki rotaları hızlı bulmak için Set kullan
+    var rotadakiKenarlar = new Set();
+    if (aktifYol && aktifYol.yolRotalar) {
+      for (var i = 0; i < aktifYol.yolRotalar.length; i++) {
+        rotadakiKenarlar.add(aktifYol.yolRotalar[i]);
+      }
+    }
+
+    // ---- Transit Hatlar ----
+    for (var i = 0; i < graf.rotalar.length; i++) {
+      var rota       = graf.rotalar[i];
+      var rotadaMi   = rotadakiKenarlar.has(rota);
+      var ekspresHat = !rota.mstMi;
+      var noktaVarMi = rota.yolNoktalari && rota.yolNoktalari.length > 2;
+
+      ctx.save();
+      if (rotadaMi) {
+        // Aktif rota — turuncu/kırmızı halo + kalın çizgi + beyaz kesik üst
+        ctx.strokeStyle = 'rgba(210,46,15,0.13)'; ctx.lineWidth = 12;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        rotaCizgisiCiz(ctx, rota, noktaVarMi); ctx.stroke();
+
+        ctx.strokeStyle = '#d02e10'; ctx.lineWidth = 3.5;
+        rotaCizgisiCiz(ctx, rota, noktaVarMi); ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.2;
+        ctx.setLineDash([5, 5]);
+        rotaCizgisiCiz(ctx, rota, noktaVarMi); ctx.stroke();
+        ctx.setLineDash([]);
+
+      } else if (ekspresHat) {
+        // Ekspres hat — mavi kesikli (multigraph kopyası)
+        ctx.strokeStyle = 'rgba(37,99,235,0.55)'; ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]); ctx.lineCap = 'round';
+        rotaCizgisiCiz(ctx, rota, noktaVarMi); ctx.stroke();
+        ctx.setLineDash([]);
+
+      } else {
+        // Normal MST hattı — ince koyu çizgi
+        ctx.strokeStyle = 'rgba(20,20,40,0.30)'; ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        rotaCizgisiCiz(ctx, rota, noktaVarMi); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ---- KNN Görselleştirme ----
+    if (knnSorguNokta && knnSonuclari.length > 0) {
+      var enUzak = 0;
+      for (var i = 0; i < knnSonuclari.length; i++) {
+        var d = Math.hypot(knnSonuclari[i].x - knnSorguNokta.x, knnSonuclari[i].y - knnSorguNokta.y);
+        if (d > enUzak) enUzak = d;
+      }
+      ctx.save();
+      // KNN yarıçap çemberi
+      ctx.strokeStyle = 'rgba(22,163,74,0.32)'; ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.arc(knnSorguNokta.x, knnSorguNokta.y, enUzak, 0, 2*Math.PI); ctx.stroke();
+      // Her KNN istasyonuna çizgi
+      for (var i = 0; i < knnSonuclari.length; i++) {
+        ctx.strokeStyle = 'rgba(22,163,74,0.38)'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(knnSorguNokta.x, knnSorguNokta.y);
+        ctx.lineTo(knnSonuclari[i].x, knnSonuclari[i].y); ctx.stroke();
+      }
+      ctx.setLineDash([]); ctx.restore();
+    }
+
+    // ---- İstasyon Sembolleri ----
+    for (var i = 0; i < graf.istasyonlar.length; i++) {
+      var ist = graf.istasyonlar[i];
+
+      var baslangicMi = seciliBaslangic && seciliBaslangic.id === ist.id;
+      var hedefMi     = seciliHedef     && seciliHedef.id     === ist.id;
+      var rotadaMi    = aktifYol && aktifYol.yol && aktifYol.yol.indexOf(ist.id) !== -1;
+      var knnMi       = false;
+      for (var k = 0; k < knnSonuclari.length; k++) {
+        if (knnSonuclari[k].id === ist.id) { knnMi = true; break; }
+      }
+      var seciliMi = seciliIstasyon && seciliIstasyon.id === ist.id;
+
+      var renk    = '#2563eb';
+      var yaricap = 5;
+      if      (baslangicMi || hedefMi) { renk = '#16a34a'; yaricap = 6.5; }
+      else if (rotadaMi)               { renk = '#d02e10'; yaricap = 5.5; }
+      else if (knnMi)                  { renk = '#16a34a'; yaricap = 5.5; }
+      else if (seciliMi)               { renk = '#d02e10'; yaricap = 6.5; }
+
+      ctx.save();
+      // Halo
+      ctx.beginPath(); ctx.arc(ist.x, ist.y, yaricap + 5, 0, 2*Math.PI);
+      if (baslangicMi || hedefMi)    ctx.fillStyle = 'rgba(22,163,74,0.13)';
+      else if (rotadaMi || seciliMi) ctx.fillStyle = 'rgba(208,46,16,0.12)';
+      else                           ctx.fillStyle = 'rgba(37,99,235,0.10)';
+      ctx.fill();
+      // Beyaz dış halka
+      ctx.beginPath(); ctx.arc(ist.x, ist.y, yaricap + 2, 0, 2*Math.PI);
+      ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.fill();
+      // Renkli iç
+      ctx.beginPath(); ctx.arc(ist.x, ist.y, yaricap, 0, 2*Math.PI);
+      ctx.fillStyle = renk; ctx.fill();
+      // M harfi
+      ctx.fillStyle = '#fff';
+      ctx.font      = 'bold ' + (yaricap * 1.5) + 'px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('M', ist.x, ist.y + 0.5);
+      ctx.restore();
+
+      // İsim etiketi
+      if (etiketlerGoster || baslangicMi || hedefMi || rotadaMi || seciliMi) {
+        ctx.save(); ctx.font = '9px Arial';
+        var genislik = ctx.measureText(ist.isim).width;
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.fillRect(ist.x + yaricap + 3, ist.y - 6, genislik + 5, 12);
+        ctx.fillStyle = 'rgba(20,20,30,0.9)'; ctx.textBaseline = 'middle';
+        ctx.fillText(ist.isim, ist.x + yaricap + 5, ist.y + 0.5);
+        ctx.restore();
+      }
+    }
+
+    // KNN sorgu noktası
+    if (knnSorguNokta) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(knnSorguNokta.x, knnSorguNokta.y, 5, 0, 2*Math.PI);
+      ctx.fillStyle = '#16a34a'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // Rota çizgisi — bundling varsa kavisli, yoksa düz
+  function rotaCizgisiCiz(ctx, rota, noktaVarMi) {
+    var noktalar = rota.yolNoktalari;
+    ctx.beginPath();
+    if (noktaVarMi && noktalar.length > 1) {
+      // Quadratic bezier: ara noktaların ortasından geç — kavisli görünüm
+      ctx.moveTo(noktalar[0].x, noktalar[0].y);
+      for (var i = 1; i < noktalar.length - 1; i++) {
+        var orta = { x: (noktalar[i].x + noktalar[i+1].x)/2, y: (noktalar[i].y + noktalar[i+1].y)/2 };
+        ctx.quadraticCurveTo(noktalar[i].x, noktalar[i].y, orta.x, orta.y);
+      }
+      ctx.lineTo(noktalar[noktalar.length - 1].x, noktalar[noktalar.length - 1].y);
+    } else {
+      // Düz çizgi (yolNoktalari yoksa)
+      ctx.moveTo(rota.kaynak.x, rota.kaynak.y);
+      ctx.lineTo(rota.hedef.x,  rota.hedef.y);
+    }
+  }
+
+  function tumunuCiz() { haritaCiz(); transitCiz(); }
+
+  // =============================================================
+  // UI GÜNCELLEME FONKSİYONLARI
+  // =============================================================
+
+  function durumGuncelle(mesaj) {
+    document.getElementById('durum-cubugu').textContent = mesaj;
+  }
+
+  function istatistikGuncelle() {
+    var mst = 0, exp = 0;
+    for (var i = 0; i < graf.rotalar.length; i++) {
+      if (graf.rotalar[i].mstMi) mst++; else exp++;
+    }
+    document.getElementById('stat-istasyon').textContent = graf.istasyonlar.length;
+    document.getElementById('stat-rota').textContent     = graf.rotalar.length;
+    document.getElementById('stat-mst').textContent      = mst;
+    document.getElementById('stat-ekspres').textContent  = exp;
+  }
+
+  // İlk tıklama paneli: istasyon/konum bilgisi + KNN listesi
+  function ilkTiklamaBilgisiGoster(istasyon, knnListesi, qx, qy) {
+    var html = '';
+    if (istasyon) {
+      var bagliSayisi = 0;
+      for (var i = 0; i < graf.rotalar.length; i++) {
+        if (graf.rotalar[i].kaynak.id === istasyon.id || graf.rotalar[i].hedef.id === istasyon.id) bagliSayisi++;
+      }
+      html += '<div class="bolum-baslik">Seçili İstasyon</div>';
+      html += '<div style="font-size:12px;font-weight:bold;margin-bottom:4px">' + istasyon.isim + '</div>';
+      html += '<div style="font-size:10px;color:#888;margin-bottom:10px">';
+      html += 'Konum: (' + Math.round(istasyon.x) + ', ' + Math.round(istasyon.y) + ')<br>';
+      html += 'Bağlı hat sayısı: ' + bagliSayisi + '</div>';
+    } else {
+      html += '<div class="bolum-baslik">Tıklanan Konum</div>';
+      html += '<div style="font-size:10px;color:#888;margin-bottom:10px">(' + Math.round(qx) + ', ' + Math.round(qy) + ')</div>';
+    }
+
+    html += '<div class="bolum-baslik">En Yakın ' + knnListesi.length + ' İstasyon</div>';
+    for (var i = 0; i < knnListesi.length; i++) {
+      var s = knnListesi[i];
+      var d = Math.round(Math.hypot(s.x - qx, s.y - qy));
+      html += '<div class="liste-satiri" onclick="baslangicOlarakSec(' + s.id + ')">';
+      html += '<div style="font-size:9px;color:#aaa;width:14px">#' + (i+1) + '</div>';
+      html += '<div class="nokta" style="background:#16a34a"></div>';
+      html += '<div style="flex:1">' + s.isim + '</div>';
+      html += '<div class="mesafe-yazi">' + d + 'm</div></div>';
+    }
+
+    if (istasyon) {
+      html += '<div style="font-size:10px;color:#888;margin-top:10px;padding:7px 8px;';
+      html += 'background:#f5f5f5;border-radius:5px;border:1px solid #e8e8e8">';
+      html += 'Hedef için başka bir istasyona tıklayın</div>';
+    }
+
+    document.getElementById('dinamik-bolum').innerHTML = html;
+  }
+
+  // Dijkstra rota sonucu paneli
+  function dijkstraRotaSonucuGoster(rotaSonucu, baslangic, hedef) {
+    var html = '';
+    var kritMetnleri = { mesafe: 'ğŸ“ Mesafe', zaman: 'â± Süre', maliyet: 'ğŸ’° Maliyet', aktarma: 'ğŸ”„ Aktarma' };
+    var kritBirim    = { mesafe: 'birim', zaman: 'dk', maliyet: '$', aktarma: 'durak' };
+
+    html += '<div class="bolum-baslik">Dijkstra Rotası</div>';
+    html += '<div class="rota-kutusu">';
+    html += '<div class="rota-baslik">' + baslangic.isim + ' -> ' + hedef.isim + '</div>';
+
+    if (rotaSonucu.yol.length > 1) {
+      var durakSayisi   = rotaSonucu.yol.length - 1;
+      var toplamDeger   = isFinite(rotaSonucu.toplamMaliyet) ? rotaSonucu.toplamMaliyet.toFixed(1) : '?';
+      var krit          = rotaSonucu.kriter || 'mesafe';
+      html += '<div class="rota-detay">';
+      html += kritMetnleri[krit] + ' optimizasyonu ' + durakSayisi + ' durak ';
+      html += toplamDeger + ' ' + kritBirim[krit];
+      html += '</div>';
+      html += '<div class="durak-listesi">';
+      for (var i = 0; i < rotaSonucu.yol.length; i++) {
+        var ist = null;
+        for (var j = 0; j < graf.istasyonlar.length; j++) {
+          if (graf.istasyonlar[j].id === rotaSonucu.yol[i]) { ist = graf.istasyonlar[j]; break; }
+        }
+        if (ist) html += '<span class="durak-etiketi">' + ist.id + '</span>';
+        if (i < rotaSonucu.yol.length - 1) html += '<span style="color:#aaa;font-size:9px"> â€º</span>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div style="color:#c00;font-size:10px">Rota bulunamadı</div>';
+    }
+
+    html += '</div>';
+    html += '<div style="font-size:10px;color:#888;margin-top:8px">Yeni rota için istasyona tıklayın</div>';
+    document.getElementById('dinamik-bolum').innerHTML = html;
+  }
+
+  function aStarRotaSonucuGoster(rotaSonucu, baslangic, hedef) {
+    var html = '<div class="bolum-baslik">A* Rotası</div>';
+    html += '<div class="rota-kutusu">';
+    html += '<div class="rota-baslik">' + baslangic.isim + ' -> ' + hedef.isim + '</div>';
+
+    if (rotaSonucu.yol.length > 1) {
+      html += '<div class="rota-detay">Mesafe optimizasyonu ';
+      html += (rotaSonucu.yol.length - 1) + ' durak ';
+      html += rotaSonucu.toplamMaliyet.toFixed(1) + ' birim</div>';
+      html += '<div class="durak-listesi">';
+      for (var i = 0; i < rotaSonucu.yol.length; i++) {
+        html += '<span class="durak-etiketi">' + rotaSonucu.yol[i] + '</span>';
+        if (i < rotaSonucu.yol.length - 1) html += '<span style="color:#aaa;font-size:9px"> â€º</span>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div style="color:#c00;font-size:10px">Rota bulunamadı</div>';
+    }
+
+    html += '</div>';
+    html += '<div style="font-size:10px;color:#888;margin-top:8px">Yeni rota için istasyona tıklayın</div>';
+    document.getElementById('dinamik-bolum').innerHTML = html;
+  }
+
+  // =============================================================
+  // TIKLAMA MANTIĞI — DURUM MAKİNESİ
+  //
+  // Durum 1: seciliBaslangic=null
+  //   Boş alan -> KNN göster
+  //   İstasyon -> başlangıç seç + KNN göster
+  //
+  // Durum 2: seciliBaslangic=var, seciliHedef=null
+  //   Aynı istasyon -> sıfırla
+  //   Başka istasyon -> rota hesapla
+  //   Boş alan -> sıfırla + KNN
+  //
+  // Durum 3: her ikisi de seçili
+  //   Herhangi istasyon -> yeni başlangıç olarak seç
+  // =============================================================
+  canvas.addEventListener('mouseup', function(e) {
+    if (surukleniyorMu) { surukleniyorMu = false; tumunuCiz(); return; }
+
+    var rect = haritaAlani.getBoundingClientRect();
+    var dk   = ekrandenDunyaya(e.clientX - rect.left, e.clientY - rect.top);
+    var wx   = dk.x, wy = dk.y;
+
+    // 14/olcek piksel toleransı içindeki istasyonu bul
+    var tiklananIst = null;
+    for (var i = 0; i < graf.istasyonlar.length; i++) {
+      if (Math.hypot(graf.istasyonlar[i].x - wx, graf.istasyonlar[i].y - wy) < 14 / olcek) {
+        tiklananIst = graf.istasyonlar[i]; break;
+      }
+    }
+
+    var K = Math.min(5, Math.max(3, Math.floor(graf.istasyonlar.length / 10)));
+
+    // ---- Boş alana tıklandı ----
+    if (!tiklananIst) {
+      seciliBaslangic = null; seciliHedef = null; aktifYol = null; seciliIstasyon = null;
+      knnSorguNokta   = { x: wx, y: wy };
+      knnSonuclari    = enYakinKIstasyon(graf.istasyonlar, wx, wy, K);
+      ilkTiklamaBilgisiGoster(null, knnSonuclari, wx, wy);
+      durumGuncelle('En yakın istasyonlar — istasyona tıklayıp rota başlatın');
+      tumunuCiz(); return;
+    }
+
+    // ---- İstasyona tıklandı ----
+    if (!seciliBaslangic) {
+      // 1. tıklama — başlangıç seç
+      seciliBaslangic = tiklananIst; seciliIstasyon = tiklananIst;
+      seciliHedef = null; aktifYol = null;
+      knnSorguNokta = { x: tiklananIst.x, y: tiklananIst.y };
+      knnSonuclari  = enYakinKIstasyon(graf.istasyonlar, tiklananIst.x, tiklananIst.y, K + 1)
+                      .filter(function(s) { return s.id !== tiklananIst.id; }).slice(0, K);
+      ilkTiklamaBilgisiGoster(tiklananIst, knnSonuclari, tiklananIst.x, tiklananIst.y);
+      durumGuncelle(tiklananIst.isim + ' seçildi — hedef istasyona tıklayın');
+      tumunuCiz();
+
+    } else if (!seciliHedef) {
+      // 2. tıklama — hedef seç
+      if (tiklananIst.id === seciliBaslangic.id) {
+        // Aynı istasyona tekrar tıklandı — sıfırla
+        seciliBaslangic = null; seciliHedef = null; aktifYol = null;
+        seciliIstasyon  = null; knnSonuclari = []; knnSorguNokta = null;
+        document.getElementById('dinamik-bolum').innerHTML =
+          '<div class="bolum-baslik">Bilgi</div><div class="bos-durum">Haritaya tıklayın</div>';
+        durumGuncelle('Haritaya tıklayın');
+        tumunuCiz(); return;
+      }
+
+      seciliHedef   = tiklananIst;
+      knnSonuclari  = []; knnSorguNokta = null;
+
+      if (aktifAlgoritma === 'dijkstra') {
+        // Dijkstra — tam implement edilmiş, çalıştır
+        var rotaSonucu = dijkstraTransit(
+          graf.istasyonlar, graf.rotalar,
+          seciliBaslangic.id, seciliHedef.id,
+          aktifKriter
+        );
+        aktifYol = rotaSonucu;
+        if (rotaSonucu.yol.length > 1) {
+          var k = rotaSonucu.kriter || 'mesafe';
+          var birimler = { mesafe: 'birim', zaman: 'dk', maliyet: '$', aktarma: 'durak' };
+          durumGuncelle(
+            'Dijkstra ' + (rotaSonucu.yol.length - 1) + ' durak ' +
+            rotaSonucu.toplamMaliyet.toFixed(1) + ' ' + birimler[k]
+          );
+        } else {
+          durumGuncelle('Rota bulunamadı');
+        }
+        dijkstraRotaSonucuGoster(rotaSonucu, seciliBaslangic, seciliHedef);
+
+      } else {
+        var aStarSonucu = aStarTransit(
+          graf.istasyonlar, graf.rotalar,
+          seciliBaslangic.id, seciliHedef.id
+        );
+        aktifYol = aStarSonucu;
+        if (aStarSonucu.yol.length > 1) {
+          durumGuncelle(
+            'A* ' + (aStarSonucu.yol.length - 1) + ' durak ' +
+            aStarSonucu.toplamMaliyet.toFixed(1) + ' birim'
+          );
+        } else {
+          durumGuncelle('Rota bulunamadı');
+        }
+        aStarRotaSonucuGoster(aStarSonucu, seciliBaslangic, seciliHedef);
+      }
+      tumunuCiz();
+
+    } else {
+      // 3. tıklama — yeni başlangıç olarak seç
+      seciliBaslangic = tiklananIst; seciliIstasyon = tiklananIst;
+      seciliHedef = null; aktifYol = null;
+      knnSorguNokta = { x: tiklananIst.x, y: tiklananIst.y };
+      knnSonuclari  = enYakinKIstasyon(graf.istasyonlar, tiklananIst.x, tiklananIst.y, K + 1)
+                      .filter(function(s) { return s.id !== tiklananIst.id; }).slice(0, K);
+      ilkTiklamaBilgisiGoster(tiklananIst, knnSonuclari, tiklananIst.x, tiklananIst.y);
+      durumGuncelle(tiklananIst.isim + ' seçildi — hedef istasyona tıklayın');
+      tumunuCiz();
+    }
+  });
+
+  // KNN listesinden istasyon seç
+  function baslangicOlarakSec(istasyonId) {
+    var ist = null;
+    for (var i = 0; i < graf.istasyonlar.length; i++) {
+      if (graf.istasyonlar[i].id === istasyonId) { ist = graf.istasyonlar[i]; break; }
+    }
+    if (!ist) return;
+    var K         = Math.min(5, Math.max(3, Math.floor(graf.istasyonlar.length / 10)));
+    seciliBaslangic = ist; seciliIstasyon = ist; seciliHedef = null; aktifYol = null;
+    knnSorguNokta   = { x: ist.x, y: ist.y };
+    knnSonuclari    = enYakinKIstasyon(graf.istasyonlar, ist.x, ist.y, K + 1)
+                      .filter(function(s) { return s.id !== ist.id; }).slice(0, K);
+    ilkTiklamaBilgisiGoster(ist, knnSonuclari, ist.x, ist.y);
+    durumGuncelle(ist.isim + ' seçildi — hedef istasyona tıklayın');
+    tumunuCiz();
+  }
+
+  // =============================================================
+  // FARE OLAYLARI
+  // =============================================================
+
+  canvas.addEventListener('mousedown', function(e) {
+    surukleniyorMu       = false;
+    surukleBaslangic     = { x: e.clientX, y: e.clientY };
+    goruntulemeBaslangic = { x: offsetX,   y: offsetY   };
+    canvas.style.cursor  = 'default';
+  });
+
+  canvas.addEventListener('mousemove', function(e) {
+    var dx = e.clientX - surukleBaslangic.x;
+    var dy = e.clientY - surukleBaslangic.y;
+    if (e.buttons > 0 && Math.hypot(dx, dy) > 6) {
+      surukleniyorMu = true;
+      offsetX = goruntulemeBaslangic.x + dx;
+      offsetY = goruntulemeBaslangic.y + dy;
+      tumunuCiz(); canvas.style.cursor = 'grabbing';
+    }
+
+    // Tooltip
+    var rect   = haritaAlani.getBoundingClientRect();
+    var dk     = ekrandenDunyaya(e.clientX - rect.left, e.clientY - rect.top);
+    var tooltip = document.getElementById('tooltip');
+    var fareUstunde = null;
+    for (var i = 0; i < graf.istasyonlar.length; i++) {
+      if (Math.hypot(graf.istasyonlar[i].x - dk.x, graf.istasyonlar[i].y - dk.y) < 14 / olcek) {
+        fareUstunde = graf.istasyonlar[i]; break;
+      }
+    }
+    if (fareUstunde && !surukleniyorMu) {
+      tooltip.style.display = 'block';
+      tooltip.style.left    = (e.clientX - rect.left + 14) + 'px';
+      tooltip.style.top     = (e.clientY - rect.top  - 12) + 'px';
+      tooltip.innerHTML     = '<div style="font-weight:bold;margin-bottom:1px">' + fareUstunde.isim + '</div>' +
+                              '<div style="color:#666">(' + Math.round(fareUstunde.x) + ', ' + Math.round(fareUstunde.y) + ')</div>';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  });
+
+  // Fare tekerleği zoom
+  canvas.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    var rect   = haritaAlani.getBoundingClientRect();
+    var mx     = e.clientX - rect.left, my = e.clientY - rect.top;
+    var carpan = e.deltaY < 0 ? 1.1 : 0.9;
+    offsetX = mx - (mx - offsetX) * carpan;
+    offsetY = my - (my - offsetY) * carpan;
+    olcek  *= carpan;
+    tumunuCiz();
+  }, { passive: false });
+
+  // =============================================================
+  // KONTROLLER
+  // =============================================================
+
+  document.getElementById('istasyon-slider').oninput = function() {
+    document.getElementById('istasyon-sayi-goster').textContent = this.value;
+  };
+  document.getElementById('esik-slider').oninput = function() {
+    document.getElementById('esik-goster').textContent = this.value;
+  };
+  document.getElementById('etiket-checkbox').onchange = function() {
+    etiketlerGoster = this.checked; tumunuCiz();
+  };
+
+  document.getElementById('zoom-in-btn').onclick = function() {
+    var cx = canvas.width/2, cy = canvas.height/2;
+    offsetX = cx - (cx - offsetX)*1.25; offsetY = cy - (cy - offsetY)*1.25; olcek *= 1.25; tumunuCiz();
+  };
+  document.getElementById('zoom-out-btn').onclick = function() {
+    var cx = canvas.width/2, cy = canvas.height/2;
+    offsetX = cx - (cx - offsetX)*0.8; offsetY = cy - (cy - offsetY)*0.8; olcek *= 0.8; tumunuCiz();
+  };
+  document.getElementById('zoom-reset-btn').onclick = function() {
+    offsetX = 0; offsetY = 0; olcek = 1; tumunuCiz();
+  };
+
+  // Algoritma sekmeleri
+  var algoritmaTablari = document.querySelectorAll('.algoritma-tab');
+  for (var i = 0; i < algoritmaTablari.length; i++) {
+    algoritmaTablari[i].addEventListener('click', function() {
+      for (var j = 0; j < algoritmaTablari.length; j++) algoritmaTablari[j].classList.remove('aktif');
+      this.classList.add('aktif');
+      aktifAlgoritma = this.getAttribute('data-algoritma');
+
+      // Dijkstra kriter alanını göster/gizle
+      document.getElementById('dijkstra-kriter-alani').style.display =
+        aktifAlgoritma === 'dijkstra' ? 'block' : 'none';
+
+      // Algoritma etiketini güncelle
+      var etiketMetni = aktifAlgoritma === 'dijkstra'
+        ? 'âš™ Dijkstra (' + { mesafe:'Mesafe', zaman:'Süre', maliyet:'Maliyet', aktarma:'Aktarma' }[aktifKriter] + ') | Sokak Takipli'
+        : 'âš™ A* (Sezgisel) | Sokak Takipli';
+      document.getElementById('algoritma-etiketi').textContent = etiketMetni;
+
+      // Seçimleri sıfırla, grafı yeniden oluştur
+      seciliBaslangic = null; seciliHedef = null; aktifYol = null;
+      seciliIstasyon  = null; knnSonuclari = []; knnSorguNokta = null;
+      var n   = parseInt(document.getElementById('istasyon-slider').value);
+      var esik = parseInt(document.getElementById('esik-slider').value);
+      graf = transitGrafiOlustur(n, esik);
+      istatistikGuncelle();
+      document.getElementById('dinamik-bolum').innerHTML =
+        '<div class="bolum-baslik">Bilgi</div><div class="bos-durum">Haritaya tıklayın</div>';
+      durumGuncelle('Algoritma değiştirildi');
+      tumunuCiz();
+    });
+  }
+
+  // Dijkstra kriter butonları — C#'taki OptimizationCriteria enum ile eşleşiyor
+  var kriterButonlari = document.querySelectorAll('.kriter-btn');
+  for (var i = 0; i < kriterButonlari.length; i++) {
+    kriterButonlari[i].addEventListener('click', function() {
+      for (var j = 0; j < kriterButonlari.length; j++) kriterButonlari[j].classList.remove('aktif');
+      this.classList.add('aktif');
+      aktifKriter = this.getAttribute('data-kriter');
+      // Algoritma etiketini güncelle
+      var kritMetin = { mesafe:'Mesafe', zaman:'Süre', maliyet:'Maliyet', aktarma:'Aktarma' };
+      document.getElementById('algoritma-etiketi').textContent =
+        'âš™ Dijkstra (' + kritMetin[aktifKriter] + ') | Sokak Takipli';
+      // Seçimi sıfırla
+      seciliHedef = null; aktifYol = null;
+      document.getElementById('dinamik-bolum').innerHTML =
+        '<div class="bolum-baslik">Bilgi</div><div class="bos-durum">Haritaya tıklayın</div>';
+      durumGuncelle('Kriter değiştirildi — başlangıç istasyonu seçin');
+      tumunuCiz();
+    });
+  }
+
+  // Yeni şehir oluştur
+  document.getElementById('yeni-sehir-btn').addEventListener('click', function() {
+    var n    = parseInt(document.getElementById('istasyon-slider').value);
+    var esik = parseInt(document.getElementById('esik-slider').value);
+    durumGuncelle('Şehir oluşturuluyor...');
+    sehirTohumu = Math.floor(Math.random() * 99999);
+    setTimeout(function() {
+      canvas.width    = haritaAlani.clientWidth;
+      canvas.height   = haritaAlani.clientHeight;
+      haritaGenislik  = canvas.width;
+      haritaYukseklik = canvas.height;
+      sehirOlustur(haritaGenislik, haritaYukseklik, sehirTohumu);
+      graf = transitGrafiOlustur(n, esik);
+      seciliBaslangic = null; seciliHedef = null; aktifYol = null;
+      seciliIstasyon  = null; knnSonuclari = []; knnSorguNokta = null;
+      offsetX = 0; offsetY = 0; olcek = 1;
+      istatistikGuncelle(); tumunuCiz();
+      durumGuncelle('Haritaya tıklayın');
+    }, 10);
+  });
+
+  // Pencere boyutu değişince yeniden boyutlandır
+  var boyutGozlemcisi = new ResizeObserver(function() {
+    canvas.width    = haritaAlani.clientWidth;
+    canvas.height   = haritaAlani.clientHeight;
+    haritaGenislik  = canvas.width;
+    haritaYukseklik = canvas.height;
+    tumunuCiz();
+  });
+  boyutGozlemcisi.observe(haritaAlani);
+
+  // İlk yükleme
+  canvas.width    = haritaAlani.clientWidth;
+  canvas.height   = haritaAlani.clientHeight;
+  haritaGenislik  = canvas.width;
+  haritaYukseklik = canvas.height;
+  document.getElementById('yeni-sehir-btn').click();
+
+</script>
+</body>
+</html>
