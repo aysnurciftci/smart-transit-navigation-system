@@ -45,7 +45,8 @@ namespace SmartTransit
 
                 foreach (var route in outgoingRoutes)
                 {
-                    Station neighbor = route.Target;
+                    // Komşu istasyon (undirected edge olduğu için Target ya da Source olabilir)
+                    Station neighbor = route.Source.Id == currentNode.Id ? route.Target : route.Source;
                     
                     double routeWeight = 0;
                  
