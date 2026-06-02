@@ -86,7 +86,11 @@ namespace SmartTransit.Generator
             {
                 for (int j = i + 1; j < stations.Count; j++)
                 {
-                    candidates.Add(new Route(0, stations[i], stations[j], 0, 0, 0));
+                    double dist = Math.Sqrt(
+                        Math.Pow(stations[i].X - stations[j].X, 2) + 
+                        Math.Pow(stations[i].Y - stations[j].Y, 2)
+                    );
+                    candidates.Add(new Route(i * stations.Count + j, stations[i], stations[j], dist, dist, dist));
                 }
             }
 
