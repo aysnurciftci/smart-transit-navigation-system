@@ -414,7 +414,7 @@
   <div id="sol-panel">
 
     <div id="panel-baslik">
-      <h1>ğŸš‡ Transit Navigasyon</h1>
+      <h1>Transit Navigasyon</h1>
       <p>Akıllı Toplu Taşıma Sistemi</p>
     </div>
 
@@ -439,7 +439,7 @@
       </label>
     </div>
 
-    <button id="yeni-sehir-btn">â†º Yeni Şehir Oluştur</button>
+    <button id="yeni-sehir-btn">↻ Yeni Şehir Oluştur</button>
 
     <!-- Algoritma seçici: A* veya Dijkstra -->
     <div id="algoritma-secici">
@@ -497,11 +497,11 @@
 
     <div id="zoom-butonlar">
       <button class="zoom-btn" id="zoom-in-btn"    title="Yakınlaştır">+</button>
-      <button class="zoom-btn" id="zoom-out-btn"   title="Uzaklaştır">âˆ’</button>
-      <button class="zoom-btn" id="zoom-reset-btn" title="Sıfırla">âŠ™</button>
+      <button class="zoom-btn" id="zoom-out-btn"   title="Uzaklaştır">-</button>
+      <button class="zoom-btn" id="zoom-reset-btn" title="Sıfırla">.</button>
     </div>
 
-    <div id="algoritma-etiketi">âš™ A* (Sezgisel) | Sokak Takipli</div>
+    <div id="algoritma-etiketi">A* (Sezgisel) | Sokak Takipli</div>
 
     <div id="tooltip"></div>
 
@@ -704,7 +704,8 @@
   // Her yönden "gelen açıya göre en sola dön" kuralıyla çokgen oluşturulur.
   // Oluşan her çokgen bir arazi bloğunu temsil eder.
   function yuzleriCikar() {
-    // Komşuluk listesi: her düğüm için komşu dizisi    var komsular = {};
+    // Komşuluk listesi: her düğüm için komşu dizisi    
+    var komsular = {};
     for (var i = 0; i < sehirDugumler.length; i++) {
       komsular[sehirDugumler[i].id] = [];
     }
@@ -817,7 +818,8 @@
     this.x    = x;
     this.y    = y;
     this.isim = 'İst-' + id;
-// C#'taki HashTable'ın JS karşılığı — O(1) erişim    this.ozellikler = {};
+// C#'taki HashTable'ın JS karşılığı — O(1) erişim    
+    this.ozellikler = {};
     this.ozellikler['Id']   = id;
     this.ozellikler['X']    = x;
     this.ozellikler['Y']    = y;
@@ -2030,8 +2032,8 @@
 
       // Algoritma etiketini güncelle
       var etiketMetni = aktifAlgoritma === 'dijkstra'
-        ? 'âš™ Dijkstra (' + { mesafe:'Mesafe', zaman:'Süre', maliyet:'Maliyet', aktarma:'Aktarma' }[aktifKriter] + ') | Sokak Takipli'
-        : 'âš™ A* (Sezgisel) | Sokak Takipli';
+        ? 'Dijkstra (' + { mesafe:'Mesafe', zaman:'Süre', maliyet:'Maliyet', aktarma:'Aktarma' }[aktifKriter] + ') | Sokak Takipli'
+        : 'A* (Sezgisel) | Sokak Takipli';
       document.getElementById('algoritma-etiketi').textContent = etiketMetni;
 
       // Seçimleri sıfırla, grafı yeniden oluştur
@@ -2058,7 +2060,7 @@
       // Algoritma etiketini güncelle
       var kritMetin = { mesafe:'Mesafe', zaman:'Süre', maliyet:'Maliyet', aktarma:'Aktarma' };
       document.getElementById('algoritma-etiketi').textContent =
-        'âš™ Dijkstra (' + kritMetin[aktifKriter] + ') | Sokak Takipli';
+        'Dijkstra (' + kritMetin[aktifKriter] + ') | Sokak Takipli';
       // Seçimi sıfırla
       seciliHedef = null; aktifYol = null;
       document.getElementById('dinamik-bolum').innerHTML =
