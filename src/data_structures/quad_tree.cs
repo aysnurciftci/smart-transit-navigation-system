@@ -1,35 +1,49 @@
 /*
- Author: Aysenur Ciftci
- Modul: QuadTree - Stack Overflow Korumalı Konumsal Indeksleme
- Acıklama: Eszamanlı simulasyon calısmasına uygun, asenkron korumalı guvenli QuadTree motoru.
+  AUTHOR: Aysenur Ciftci
+  MODULE: QuadTree - Eşzamanlı Simülasyon Korumalı Konumsal İndeksleme Engine
 
- DESIGN RATIONALE & ARCHITECTURAL COMPARISON
-   1. HashMap Kıyaslaması:
-   Karma tablolar (HashMap/Dictionary) anahtar bazlı aramalarda O(1) karmaşıklığı sunsa da,
-   uzamsal yakınlık (Spatial Proximity) sorgularında veriyi geometrik olarak gruplandıramaz.
-   Konum tabanlı en yakın komşu aramalarında tüm veri kümesini O(N) maliyetle taramak
-   zorunda bırakır. QuadTree ise veriyi bölgesel olarak indeksleyerek arama uzayını daraltır.
+  DESIGN RATIONALE & ARCHITECTURAL COMPARISON (MİMARİ TASARIM GEREKÇESİ)
+  --------------------------------------------------------------------------------------
+  1. HashMap Kıyaslaması:
+  Karma tablolar (HashMap/Dictionary) anahtar bazlı aramalarda O(1) karmaşıklığı sunsa da,
+  uzamsal yakınlık (Spatial Proximity) sorgularında veriyi geometrik olarak gruplandıramaz.
+  Konum tabanlı en yakın komşu aramalarında tüm veri kümesini O(N) maliyetle taramak
+  zorunda bırakır. QuadTree ise veriyi bölgesel olarak indeksleyerek arama uzayını daraltır.
 
-   2. KD-Tree Kıyaslaması:
-   KD-Tree veri yapısı eksen bazlı ikili bölünme (Binary Partitioning) gerçekleştirirken,
-   QuadTree iki boyutlu uzayı tek bir işlemde 4 eş çeyreğe (NW, NE, SW, SE) ayırır.
-   Bu karakteristik, 2D harita koordinat sistemleri, grid tabanlı görselleştirmeler ve
-   endüstri standardı karo (Tile) mekanizmalarıyla doğrudan mimari uyum sağlar.
+  2. KD-Tree Kıyaslaması:
+  KD-Tree veri yapısı eksen bazlı ikili bölünme (Binary Partitioning) gerçekleştirirken,
+  QuadTree iki boyutlu uzayı tek bir işlemde 4 eş çeyreğe (NW, NE, SW, SE) ayırır.
+  Bu karakteristik, 2D harita koordinat sistemleri, grid tabanlı görselleştirmeler ve
+  endüstri standardı karo (Tile) mekanizmalarıyla doğrudan mimari uyum sağlar.
 
-   TIME COMPLEXITY (BIG-O ANALYSIS)
-   - Veri Ekleme (Insertion)              : Ortalama O(log N) | En Kötü O(N) (Yoğun Yığılma)
-   - En Yakın K Durak Araması (KNN Search): Ortalama O(log N) | En Kötü O(N)
+  TIME COMPLEXITY & PERFORMANCE OPTIMIZATION (BIG-O VE OPTİMİZASYON)
+  --------------------------------------------------------------------------------------
+  - Veri Ekleme (Insertion)              : Ortalama O(log N) | En Kötü O(N) (Yoğun Yığılma)
+  - En Yakın K Durak Araması (KNN Search): Mevcut sürümde O(N) (Tüm aktif düğümler taranır)
 
-   UYARI: Aynı koordinata sahip veya birbirine aşırı yakın verilerin oluşturabileceği
-   sonsuz bölünme (Infinite Subdivision) ve Stack Overflow riskini önlemek amacıyla,
-   sisteme MIN_SIZE (1.0) derinlik sınırı ve koruma mekanizması entegre edilmiştir.
+  NOT: Mevcut sürümde KNN sorgusu doğrusal arama uzayını optimize etmek adına tüm aktif
+  düğümleri taramaktadır. Gelecek sürümlerde bölgesel budama (spatial pruning) mekanizmalarının
+  eklenmesiyle arama alanının daraltılması ve ortalama sorgu performansının iyileştirilmesi
+  hedeflenmektedir.
 
-   CONCURRENCY & THREAD-SAFETY (B.1 CRITERIA)
-   Yapay zeka simülasyon motorunun asenkron çalışma mimarisi altında veri bütünlüğünü
-   korumak ve yarış durumunu (Race Condition) engellemek adına 'ReaderWriterLockSlim'
-   kilit mekanizması senkronize edilmiştir. Bu sayede kullanıcı arayüzünden tetiklenen
-   eşzamanlı çoklu okuma (Read Lock - KNN) talepleri kesintisiz karşılanırken, simülasyon
-   motorunun veri güncelleme (Write Lock - Insert) işlemleri thread-safe olarak yürütülür.
+  KAREKÖK OPTİMİZASYONU (PERFORMANCE OPTIMIZATION):
+  Mesafe sıralama işlemlerinde CPU'yu yoğun şekilde yoran 'Math.Sqrt()' (Karekök)
+  hesaplaması kaldırılarak 'Öklid Mesafesinin Karesi' (dx*dx + dy*dy) modeline geçilmiştir.
+  Matematiksel olarak uzaklıkların karelerinin sıralaması ile gerçek uzaklıkların
+  sıralaması birebir aynı olduğundan, KNN öncelikli kuyruğu (PriorityQueue) sıfır
+  maliyetle ve çok daha yüksek performansla çalışmaktadır.
+
+  UYARI: Aynı koordinata sahip veya birbirine aşırı yakın verilerin oluşturabileceği
+  sonsuz bölünme (Infinite Subdivision) ve Stack Overflow riskini önlemek amacıyla,
+  sisteme MIN_SIZE (1.0) derinlik sınırı ve koruma mekanizması entegre edilmiştir.
+
+  CONCURRENCY & THREAD-SAFETY (B.1 CRITERIA)
+  --------------------------------------------------------------------------------------
+  Yapay zeka simülasyon motorunun asenkron çalışma mimarisi altında veri bütünlüğünü
+  korumak ve yarış durumunu (Race Condition) engellemek adına 'ReaderWriterLockSlim'
+  kilit mekanizması senkronize edilmiştir. Bu sayede kullanıcı arayüzünden tetiklenen
+  eşzamanlı çoklu okuma (Read Lock - KNN) talepleri kesintisiz karşılanırken, simülasyon
+  motorunun veri güncelleme (Write Lock - Insert) işlemleri thread-safe olarak yürütülür.
  */
 
 using System;
@@ -39,15 +53,15 @@ using SmartTransit.Models;
 
 namespace SmartTransit.DataStructures
 {
-    public class QuadTree
+    public class QuadTree : IDisposable
     {
         private readonly QuadNode _root;
         private readonly int _capacity;
 
-        //  sonsuz bolunmeyi (Stack Overflow) onleyen minimum bolge boyutu sınırı
+        // Sonsuz bölünmeyi (Stack Overflow) önleyen minimum bölge boyutu sınırı
         private const double MIN_SIZE = 1.0;
 
-        // B.1 Isteri: Simulasyon motoru asenkron calısırken race condition onleyici kilit
+        // B.1 İsteri: Simülasyon motoru asenkron çalışırken race condition önleyici kilit
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
 
         public QuadTree(double boundaryX, double boundaryY, double boundaryWidth, double boundaryHeight, int capacity = 4)
@@ -71,10 +85,7 @@ namespace SmartTransit.DataStructures
 
         private bool InsertInternal(QuadNode node, Station station)
         {
-            if (!node.Contains(station.X, station.Y))
-            {
-                return false;
-            }
+            if (!node.Contains(station.X, station.Y)) return false;
 
             if (node.Stations.Count < _capacity && !node.IsDivided)
             {
@@ -82,7 +93,6 @@ namespace SmartTransit.DataStructures
                 return true;
             }
 
-            //  Ust uste binen koordinatlarda sonsuz donguyu ve cokmeyi onler
             if (node.Width <= MIN_SIZE || node.Height <= MIN_SIZE)
             {
                 node.Stations.Add(station);
@@ -116,9 +126,7 @@ namespace SmartTransit.DataStructures
 
         public List<Station> FindKNearestNeighbors(double targetX, double targetY, int k)
         {
-            //  NULL/PARAMETRE GUVENLIGI KONTROLU
-            if (k <= 0)
-                return new List<Station>();
+            if (k <= 0) return new List<Station>();
 
             _lock.EnterReadLock();
             try
@@ -146,8 +154,9 @@ namespace SmartTransit.DataStructures
 
             foreach (var station in node.Stations)
             {
-                double distance = CalculateDistance(tx, ty, station.X, station.Y);
-                pq.Enqueue(distance, station);
+                // Karekök optimizasyonlu mesafe hesabı çağrılıyor
+                double distanceSquared = CalculateDistanceSquared(tx, ty, station.X, station.Y);
+                pq.Enqueue(distanceSquared, station);
             }
 
             if (node.IsDivided)
@@ -159,30 +168,16 @@ namespace SmartTransit.DataStructures
             }
         }
 
-        private double CalculateDistance(double x1, double y1, double x2, double y2)
+        private double CalculateDistanceSquared(double x1, double y1, double x2, double y2)
         {
-            return Math.Sqrt(Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2));
+            double dx = x1 - x2;
+            double dy = y1 - y2;
+            return (dx * dx) + (dy * dy);
         }
 
-        /*GRAPH ENTEGRASYON METODU;
-            TransitGraph icindeki tum istasyonları konumsal indekse gecer ve en yakın tek istasyonu (K=1) dondurur.
-        */
-                public static Station GetNearestStationFromGraph(SmartTransit.MultiGraph.TransitGraph graph, double targetX, double targetY)
-                {
-                    // 1. Haritanın boyutlarına uygun bir QuadTree baslatıyoruz.
-                    var tempTree = new QuadTree(500, 500, 500, 500, capacity: 4);
-
-                    // Graph nesnesindeki tum istasyon verileri agaca yukleniyor
-                    foreach (var station in graph.Stations)
-                    {
-                        tempTree.Insert(station);
-                    }
-
-                    // Hedef konuma en yakın 1 adet eleman sorgulanıyor
-                    List<Station> nearestList = tempTree.FindKNearestNeighbors(targetX, targetY, 1);
-
-                    // 4. Eger liste doluysa en yakın istasyonu, bos kalmıssa null donduruyoruz
-                    return nearestList.Count > 0 ? nearestList[0] : null;
-                }
+        public void Dispose()
+        {
+            _lock?.Dispose();
+        }
     }
 }

@@ -21,7 +21,7 @@ namespace SmartTransit.DataStructures
 {
     public class QuadNode
     {
-        // Bolgenin merkez koordinatları (X, Y) ve yarıcap genislik/yukseklikleri
+        // Bölgenin merkez koordinatları (X, Y) ve yarım genişlik / yarım yükseklik değerleri
         public double X { get; set; }
         public double Y { get; set; }
         public double Width { get; set; }
