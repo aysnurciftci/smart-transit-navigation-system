@@ -1,5 +1,5 @@
 /*
-  AUTHOR: Aysenur Ciftci
+  Yazarlar: Ayşenur Çiftçi
   MODULE: Locator - Uzamsal Konumlandırma Servisi
 
   MİMARİ STRATEJİ & AKADEMİK SAVUNMA (PURE C#)

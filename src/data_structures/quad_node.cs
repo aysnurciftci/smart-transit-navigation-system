@@ -1,5 +1,5 @@
 /*
- Author: Aysenur Ciftci
+ Yazarlar: Ayşenur Çiftçi
  Modul: QuadNode - Harita Tabanlı Konumsal Bolmeler
  Acıklama: QuadTree yapısının her bir dugumunu temsil eder.
  Ekran/Harita koordinat sistemine (Asagı indikce Y artar) uygun bolunme mantıgını icerir.

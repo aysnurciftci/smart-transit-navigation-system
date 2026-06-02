@@ -1,4 +1,5 @@
 /*
+Yazarlar: Bora Pektaş
 A* Yol bulma algoritması, sadece mesafe ile çalışır, masraf ve süreye göre hesaplayamaz.
 Sezgisi x,y'ye göre kuş uçuşu mesafedir.
 

@@ -1,4 +1,5 @@
 /*
+Yazarlar: Ege Başaran, Bora Pektaş
 Burası Rota nesne class'ıdır. Rota içinde temelde
 çıktığı ve gittiği istasyonların bilgileri olacaktır.
 

@@ -1,3 +1,6 @@
+/*
+Yazarlar: Taylan Özer
+*/
 //A* ve Dijkstra'da kullanılacak sıralı kuyruk
 
 
