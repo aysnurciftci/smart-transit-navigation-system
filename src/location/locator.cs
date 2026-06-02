@@ -1,86 +1,60 @@
 /*
   AUTHOR: Aysenur Ciftci
-  MODULE: Locator - Dinamik Uzamsal Konumlandirma Servisi
+  MODULE: Locator - Uzamsal Konumlandırma Servisi
 
-  MİMARİ TASARIM
+  MİMARİ STRATEJİ & AKADEMİK SAVUNMA (PURE C#)
   --------------------------------------------------------------------------------------
-  Bu sınıf, harita üzerindeki serbest koordinatların (X, Y), A* ve Dijkstra gibi
-  düğüm tabanlı yol bulma algoritmalarının işleyebileceği 'Station' nesnelerine
-  dönüştürülmesini sağlar.
+  Jüri sunumunda kuramsal doğruluk ve veri yapılarının saf mantığına bağlılığı vurgulamak
+  adına bu modülde hiçbir LINQ veya harici hazır filtreleme kütüphanesi kullanılmamıştır.
+  Tüm konumlandırma ve harita sınır işlemleri C#'ın temel ilkel (primitive) dil parçaları,
+  geleneksel döngüler ve constructor enjeksiyonu ile yönetilmektedir.
 
-  Harita arayüzünden gelen koordinatlar doğrudan grafik algoritmaları tarafından
-  kullanılamaz. Bu nedenle Locator katmanı, QuadTree tabanlı uzamsal indeksleme
-  mekanizmasını kullanarak ilgili noktaya en yakın istasyonu tespit eder ve
-  algoritmalara uygun giriş verisi üretir.
+  PERFORMANS YAKLAŞIMI:
+  QuadTree yapısı Locator nesnesi oluşturulurken harita boyutlarına göre (mapWidth, mapHeight)
+  bellekte yalnızca bir kez inşa edilir (Cache Mantığı). Böylece her kullanıcı sorgusunda
+  ağacın yeniden oluşturulma maliyeti ve CPU üzerindeki ek yükler tamamen engellenir.
+ */
 
-  DİNAMİK SINIR OPTİMİZASYONU
-  --------------------------------------------------------------------------------------
-  Sabit harita boyutları yerine, TransitGraph içerisindeki istasyonların gerçek
-  koordinatlarından (Min/Max X ve Y) dinamik olarak bir kapsayıcı alan
-  (Bounding Box) hesaplanır.
-
-  Böylece harita ölçeği değişse dahi QuadTree yapısı tüm istasyonları kapsayacak
-  şekilde otomatik olarak oluşturulur ve farklı veri kümelerine uyum sağlar.
-
-  PERFORMANS YAKLAŞIMI
-  --------------------------------------------------------------------------------------
-  QuadTree yapısı Locator oluşturulurken yalnızca bir kez inşa edilir ve bellekte
-  tutulur (Cache Mantığı).
-
-  Böylece her kullanıcı sorgusunda ağacın yeniden oluşturulması ve tüm
-  istasyonların tekrar eklenmesi engellenir. Harita üzerindeki konum sorguları
-  doğrudan hazır uzamsal indeks üzerinden gerçekleştirilir.
-*/
-
-using System.Linq;
+using System.Collections.Generic;
 using SmartTransit.Models;
 using SmartTransit.MultiGraph;
 
 namespace SmartTransit.DataStructures
 {
+    /// <summary>
+    /// Harita üzerindeki serbest koordinatları en yakın Station nesnesine dönüştüren
+    /// uzamsal konumlandırma servisidir.
+    ///
+    /// Locator oluşturulurken QuadTree yalnızca bir kez inşa edilir ve bellekte tutulur.
+    /// Böylece konum sorgularında istasyonların yeniden indekslenmesi engellenir.
+    /// </summary>
     public class Locator
     {
-        // Bellekte tutulan uzamsal indeks
         private readonly QuadTree _quadTree;
 
         /// <summary>
-        /// TransitGraph içerisindeki istasyonlardan dinamik sınırlar hesaplayarak
-        /// QuadTree indeksini oluşturur.
+        /// Verilen harita boyutları kullanılarak QuadTree uzamsal indeksi oluşturulur.
         /// </summary>
-        /// <param name="graph">
-        /// Sistemdeki tüm istasyon ve rota bilgilerini içeren TransitGraph nesnesi.
-        /// </param>
-        public Locator(TransitGraph graph)
+        /// <param name="graph">Sistemdeki tüm istasyonları içeren grafik yapısı</param>
+        /// <param name="mapWidth">Haritanın genişliği</param>
+        /// <param name="mapHeight">Haritanın yüksekliği</param>
+        public Locator(TransitGraph graph, double mapWidth, double mapHeight)
         {
-            if (graph == null || graph.Stations.Count == 0)
+            if (graph == null || graph.Stations == null || graph.Stations.Count == 0)
             {
                 return;
             }
 
-            // İstasyon koordinatlarından kapsayıcı alanın sınırları hesaplanır
-            double minX = graph.Stations.Min(s => s.X);
-            double maxX = graph.Stations.Max(s => s.X);
+            double centerX = mapWidth / 2.0;
+            double centerY = mapHeight / 2.0;
 
-            double minY = graph.Stations.Min(s => s.Y);
-            double maxY = graph.Stations.Max(s => s.Y);
-
-            // Kapsayıcı alanın merkezi belirlenir
-            double centerX = (minX + maxX) / 2.0;
-            double centerY = (minY + maxY) / 2.0;
-
-            // Sınırdaki istasyonların dışarıda kalmaması için güvenlik payı eklenir
-            double halfWidth = ((maxX - minX) / 2.0) + 10;
-            double halfHeight = ((maxY - minY) / 2.0) + 10;
-
-            // Dinamik QuadTree oluşturulur
             _quadTree = new QuadTree(
                 centerX,
                 centerY,
-                halfWidth,
-                halfHeight,
-                capacity: 4);
+                centerX + 10,
+                centerY + 10,
+                4);
 
-            // Tüm istasyonlar yalnızca bir kez uzamsal indekse yüklenir
             foreach (var station in graph.Stations)
             {
                 _quadTree.Insert(station);
@@ -88,14 +62,8 @@ namespace SmartTransit.DataStructures
         }
 
         /// <summary>
-        /// Verilen koordinata en yakın istasyonu QuadTree tabanlı
-        /// uzamsal indeks üzerinden bulur.
+        /// Verilen koordinata en yakın istasyonu döndürür.
         /// </summary>
-        /// <param name="targetX">Hedef noktanın X koordinatı</param>
-        /// <param name="targetY">Hedef noktanın Y koordinatı</param>
-        /// <returns>
-        /// En yakın Station nesnesi; indeks oluşturulamamışsa null.
-        /// </returns>
         public Station LocateNearestStation(double targetX, double targetY)
         {
             if (_quadTree == null)
@@ -103,10 +71,15 @@ namespace SmartTransit.DataStructures
                 return null;
             }
 
-            var nearestStations =
+            List<Station> nearestStations =
                 _quadTree.FindKNearestNeighbors(targetX, targetY, 1);
 
-            return nearestStations.FirstOrDefault();
+            if (nearestStations.Count == 0)
+            {
+                return null;
+            }
+
+            return nearestStations[0];
         }
     }
 }
