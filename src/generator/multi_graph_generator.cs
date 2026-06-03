@@ -143,9 +143,27 @@ namespace SmartTransit.Generator
                 }
                 else if (route.Distance < threshold && rand.NextDouble() > 0.9)
                 {
-                    // Zaten bağlılar ama birbirlerine yakınlar, 
-                    // %10 ihtimalle alternatif bir "ekspres hat" ekle.
-                    routes.Add(route);
+                    // Cobweb prevention: Ensure this new express route doesn't cross existing routes
+                    bool crosses = false;
+                    foreach (var existing in routes)
+                    {
+                        // Aynı istasyona bağlanan hatlar kesişmez, sadece birleşir
+                        if (existing.Source.Id == route.Source.Id || existing.Source.Id == route.Target.Id ||
+                            existing.Target.Id == route.Source.Id || existing.Target.Id == route.Target.Id)
+                            continue;
+
+                        if (LinesIntersect(route.Source.X, route.Source.Y, route.Target.X, route.Target.Y,
+                                           existing.Source.X, existing.Source.Y, existing.Target.X, existing.Target.Y))
+                        {
+                            crosses = true;
+                            break;
+                        }
+                    }
+
+                    if (!crosses)
+                    {
+                        routes.Add(route);
+                    }
                 }
             }
 
@@ -165,10 +183,30 @@ namespace SmartTransit.Generator
             return routes;
         }
 
+        private static bool LinesIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4)
+        {
+            // İki doğrunun kesişim testi (Cross Product / Orientation check)
+            double d1 = Direction(x3, y3, x4, y4, x1, y1);
+            double d2 = Direction(x3, y3, x4, y4, x2, y2);
+            double d3 = Direction(x1, y1, x2, y2, x3, y3);
+            double d4 = Direction(x1, y1, x2, y2, x4, y4);
+
+            if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+                ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+                return true;
+
+            return false;
+        }
+
+        private static double Direction(double x1, double y1, double x2, double y2, double x3, double y3)
+        {
+            return (x3 - x1) * (y2 - y1) - (x2 - x1) * (y3 - y1);
+        }
+
         private static void ApplyBundlingLogic(List<Route> routes)
         {
             int subdivisions = 8; // Her yolu kaç noktaya böleceğiz?
-            int iterations = 40;  // Kümeleme sertliği
+            int iterations = 60;  // Kümeleme sertliği
             double step = 0.1;
 
             // Her rotayı alt noktalara bölerek başlat
@@ -179,6 +217,12 @@ namespace SmartTransit.Generator
                     double t = (double)i / subdivisions;
                     double px = route.Source.X + (route.Target.X - route.Source.X) * t;
                     double py = route.Source.Y + (route.Target.Y - route.Source.Y) * t;
+                    
+                    if (i > 0 && i < subdivisions) {
+                        px += (new Random().NextDouble() - 0.5) * 8.0;
+                        py += (new Random().NextDouble() - 0.5) * 8.0;
+                    }
+                    
                     route.PathPoints.Add((px, py));
                 }
             }
@@ -197,6 +241,10 @@ namespace SmartTransit.Generator
                         forceX += (r1.PathPoints[i - 1].X + r1.PathPoints[i + 1].X - 2 * r1.PathPoints[i].X);
                         forceY += (r1.PathPoints[i - 1].Y + r1.PathPoints[i + 1].Y - 2 * r1.PathPoints[i].Y);
 
+                        // Uzun rotaların çok daha sert kümelenmesi, kısa rotaların ise düz kalması için karesel ölçekleme
+                        double distanceRatio = r1.Distance / 100.0;
+                        double distanceScale = Math.Min(distanceRatio * distanceRatio, 15.0); // Fizik patlamasın diye maks 15x limit
+
                         // 2. Çekim Kuvveti: Diğer rotaların yakın segmentlerini kendine çeker
                         foreach (var r2 in routes)
                         {
@@ -206,10 +254,15 @@ namespace SmartTransit.Generator
                             double dy = r2.PathPoints[i].Y - r1.PathPoints[i].Y;
                             double dist = Math.Sqrt(dx * dx + dy * dy);
 
-                            if (dist < 40 && dist > 0.5) // Etki alanı içindeyse çek
+                            if (dist < 40 && dist > 3.0) // Etki alanı içindeyse çek
                             {
-                                forceX += dx / dist;
-                                forceY += dy / dist;
+                                forceX += (dx / dist) * distanceScale;
+                                forceY += (dy / dist) * distanceScale;
+                            }
+                            else if (dist <= 3.0 && dist > 0.1) // Çok yakınlarsa hafifçe it ki paralel görünsünler
+                            {
+                                forceX -= (dx / dist) * 1.5 * distanceScale;
+                                forceY -= (dy / dist) * 1.5 * distanceScale;
                             }
                         }
 
