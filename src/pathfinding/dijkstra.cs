@@ -1,3 +1,7 @@
+/*
+Yazarlar: Taylan Özer
+*/
+
 //Dijkstra yol bulma algoritması
 
 
@@ -17,11 +21,11 @@ namespace SmartTransit
     }
 
     public class Dijkstra
-    {
+    {//Taylan Ozer
         public static List<Station> FindShortestPath(TransitGraph graph, Station startNode, Station endNode, OptimizationCriteria criteria = OptimizationCriteria.Distance)
-        {
-            var costs = new Dictionary<int, double>();
-            var previousNodes = new Dictionary<int, Station>();
+        {//Taylan Ozer
+            var costs = new SmartTransit.DataStructures.HashTable<int, double>();
+            var previousNodes = new SmartTransit.DataStructures.HashTable<int, Station>();
             var pq = new PriorityQueue();
 
             costs[startNode.Id] = 0;
@@ -41,7 +45,8 @@ namespace SmartTransit
 
                 foreach (var route in outgoingRoutes)
                 {
-                    Station neighbor = route.Target;
+                    // Komşu istasyon (undirected edge olduğu için Target ya da Source olabilir)
+                    Station neighbor = route.Source.Id == currentNode.Id ? route.Target : route.Source;
                     
                     double routeWeight = 0;
                  

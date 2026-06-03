@@ -69,15 +69,43 @@ namespace SmartTransit.Generator
             var graph = new TransitGraph();
             var rand = new Random();
 
-            // 1. İstasyonları Oluştur (Normal Dağılım)
+            // 1. İstasyonları Oluştur (Normal Dağılım + Çakışmayı Önlemek İçin Minimum Mesafe Kontrolü)
+            double minDistance = 38.0; // İstasyonlar arası çakışmayı önlemek için minimum piksel mesafesi
             for (int i = 0; i < stationCount; i++)
             {
-                double u1 = 1.0 - rand.NextDouble();
-                double u2 = 1.0 - rand.NextDouble();
-                double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
-                
-                double x = (maxX / 2) + (maxX / 6) * randStdNormal;
-                double y = (maxY / 2) + (maxY / 6) * (Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2));
+                double x = 0;
+                double y = 0;
+                bool valid = false;
+                int trials = 0;
+
+                while (!valid && trials < 150)
+                {
+                    double u1 = 1.0 - rand.NextDouble();
+                    double u2 = 1.0 - rand.NextDouble();
+                    double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
+                    
+                    x = (maxX / 2) + (maxX / 6) * randStdNormal;
+                    y = (maxY / 2) + (maxY / 6) * (Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2));
+
+                    // Harita sınırları dışına taşmayı önle (margin = 20)
+                    if (x < 20) x = 20;
+                    if (x > maxX - 20) x = maxX - 20;
+                    if (y < 20) y = 20;
+                    if (y > maxY - 20) y = maxY - 20;
+
+                    // Mevcut istasyonlara çok yakın mı kontrolü
+                    valid = true;
+                    foreach (var other in graph.Stations)
+                    {
+                        double dist = Math.Sqrt(Math.Pow(x - other.X, 2) + Math.Pow(y - other.Y, 2));
+                        if (dist < minDistance)
+                        {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    trials++;
+                }
                 
                 graph.Stations.Add(new Station(i, x, y));
             }
