@@ -657,6 +657,8 @@
     let activeCriteria = 'mesafe';
     let selectedStart = null;
     let selectedEnd = null;
+    let startArbitraryCoord = null;
+    let endArbitraryCoord = null;
     let knnQueryPoint = null;
     let knnResults = [];
     let activePathRoutes = [];
@@ -711,6 +713,8 @@
     function resetState() {
       selectedStart = null;
       selectedEnd = null;
+      startArbitraryCoord = null;
+      endArbitraryCoord = null;
       knnQueryPoint = null;
       knnResults = [];
       activePathRoutes = [];
@@ -832,11 +836,11 @@
       });
     }
 
-    function queryKnn(x, y) {
+    function queryKnn(x, y, isSettingStart = false, isSettingEnd = false) {
       const k = 4;
       durumCubugu.textContent = 'En yakın istasyonlar taranıyor...';
 
-      fetch(`${API_URL}/locate?x=${x}&y=${y}`)
+      return fetch(`${API_URL}/locate?x=${x}&y=${y}`)
       .then(res => res.json())
       .then(nearest => {
         let sorted = stations.map(s => ({
@@ -857,6 +861,12 @@
 
         knnResults = nearestList;
 
+        if (isSettingStart && nearestList.length > 0) {
+          selectedStart = nearestList[0];
+        } else if (isSettingEnd && nearestList.length > 0) {
+          selectedEnd = nearestList[0];
+        }
+
         updateReportPanel();
         durumCubugu.textContent = 'Komşu araması tamamlandı.';
         redraw();
@@ -875,10 +885,34 @@
         const unit = algo === 'astar' ? 'm' : (criteria === 'zaman' ? 'dk' : (criteria === 'maliyet' ? 'TL' : (criteria === 'aktarma' ? 'durak' : 'm')));
         const criteriaLabel = algo === 'astar' ? 'Mesafe' : (criteria === 'aktarma' ? 'AKTARMA' : criteria.toUpperCase());
 
+        let routeTitle = '';
+        if (startArbitraryCoord) {
+          routeTitle += 'Haritada Seçilen Konum ➔ ';
+        } else {
+          routeTitle += selectedStart.name + ' ➔ ';
+        }
+        if (endArbitraryCoord) {
+          routeTitle += 'Haritada Seçilen Konum';
+        } else {
+          routeTitle += selectedEnd.name;
+        }
+
+        let walkInfo = '';
+        let totalWalk = 0;
+        if (startArbitraryCoord && selectedStart) {
+          totalWalk += Math.hypot(startArbitraryCoord.x - selectedStart.x, startArbitraryCoord.y - selectedStart.y);
+        }
+        if (endArbitraryCoord && selectedEnd) {
+          totalWalk += Math.hypot(endArbitraryCoord.x - selectedEnd.x, endArbitraryCoord.y - selectedEnd.y);
+        }
+        if (totalWalk > 0) {
+          walkInfo = `<br>Yürüme Mesafesi: <strong>${Math.round(totalWalk)} m</strong>`;
+        }
+
         html += `<div class="bolum-baslik">Navigasyon Rota Özeti</div>`;
         html += `<div class="rota-kutusu">
-          <div class="rota-baslik">${selectedStart.name} ➔ ${selectedEnd.name}</div>
-          <div class="rota-detay">Algoritma: <strong>${algo.toUpperCase()}</strong> (${criteriaLabel})<br>Maliyet: <strong>${Math.round(activePathCost, 1)} ${unit}</strong></div>
+          <div class="rota-baslik" style="font-size:10px; line-height:1.4;">${routeTitle}</div>
+          <div class="rota-detay">Algoritma: <strong>${algo.toUpperCase()}</strong> (${criteriaLabel})<br>Maliyet: <strong>${Math.round(activePathCost, 1)} ${unit}</strong>${walkInfo}</div>
           <div class="durak-listesi">`;
 
         activePathStationIds.forEach(sid => {
@@ -892,9 +926,10 @@
         });
         html += `</div></div>`;
       } else if (selectedStart && !selectedEnd) {
+        let startName = startArbitraryCoord ? 'Haritada Seçilen Konum' : selectedStart.name;
         html += `<div class="bolum-baslik">Navigasyon Rota Özeti</div>`;
         html += `<div class="rota-kutusu">
-          <div class="rota-baslik">${selectedStart.name} ➔ Hedef Seçilmedi</div>
+          <div class="rota-baslik">${startName} ➔ Hedef Seçilmedi</div>
           <div class="rota-detay" style="color: var(--text-muted)">Navigasyonu tamamlamak için haritadan veya listeden bir hedef istasyon seçin.</div>
         </div>`;
       }
@@ -1004,7 +1039,7 @@
       const sId = selectedStart ? selectedStart.id : null;
       const eId = selectedEnd ? selectedEnd.id : null;
       
-      if (!sId || !eId) return;
+      if (sId === null || eId === null) return;
       
       if (sId === eId) {
         durumCubugu.textContent = 'Hata: Başlangıç ve hedef aynı.';
@@ -1029,6 +1064,19 @@
         if (data.yol && data.yol.length > 0) {
           activePathStationIds = new Set(data.yol);
           activePathCost = data.toplamMaliyet;
+
+          let walkCost = 0;
+          if (startArbitraryCoord && selectedStart) {
+            walkCost += Math.hypot(startArbitraryCoord.x - selectedStart.x, startArbitraryCoord.y - selectedStart.y);
+          }
+          if (endArbitraryCoord && selectedEnd) {
+            walkCost += Math.hypot(endArbitraryCoord.x - selectedEnd.x, endArbitraryCoord.y - selectedEnd.y);
+          }
+          if (algo === 'astar' || criteria === 'mesafe') {
+            activePathCost += walkCost;
+          } else if (criteria === 'zaman') {
+            activePathCost += walkCost / 60.0;
+          }
 
           activePathRoutes = data.yolRotalar.map(r => ({
             id: r.id,
@@ -1422,6 +1470,47 @@
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.stroke();
       }
 
+      // 4.5 WALKING PATHS & ARBITRARY COORDINATES
+      if (startArbitraryCoord && selectedStart) {
+        ctx.strokeStyle = '#16a34a';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(startArbitraryCoord.x, startArbitraryCoord.y);
+        ctx.lineTo(selectedStart.x, selectedStart.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      if (endArbitraryCoord && selectedEnd) {
+        ctx.strokeStyle = '#d02e10';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(selectedEnd.x, selectedEnd.y);
+        ctx.lineTo(endArbitraryCoord.x, endArbitraryCoord.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      if (startArbitraryCoord) {
+        ctx.fillStyle = '#16a34a';
+        ctx.beginPath(); ctx.arc(startArbitraryCoord.x, startArbitraryCoord.y, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 9px Arial';
+        ctx.fillText("Başlangıç Konumu", startArbitraryCoord.x + 10, startArbitraryCoord.y);
+      }
+      if (endArbitraryCoord) {
+        ctx.fillStyle = '#d02e10';
+        ctx.beginPath(); ctx.arc(endArbitraryCoord.x, endArbitraryCoord.y, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 9px Arial';
+        ctx.fillText("Hedef Konumu", endArbitraryCoord.x + 10, endArbitraryCoord.y);
+      }
+
       // 5. STATIONS
       stations.forEach(s => {
         const isStart = selectedStart && s.id === selectedStart.id;
@@ -1533,6 +1622,7 @@
         // Station clicked
         if (!selectedStart) {
           selectedStart = clickedStation;
+          startArbitraryCoord = null;
           const startSelect = document.getElementById('start-select');
           if (startSelect) startSelect.value = clickedStation.id;
           
@@ -1547,6 +1637,7 @@
             redraw();
           } else {
             selectedEnd = clickedStation;
+            endArbitraryCoord = null;
             const endSelect = document.getElementById('end-select');
             if (endSelect) endSelect.value = clickedStation.id;
             runPathfinding();
@@ -1555,6 +1646,8 @@
           // If both are set, reset and set new start
           selectedStart = clickedStation;
           selectedEnd = null;
+          startArbitraryCoord = null;
+          endArbitraryCoord = null;
           const startSelect = document.getElementById('start-select');
           if (startSelect) startSelect.value = clickedStation.id;
           
@@ -1569,7 +1662,26 @@
       } else {
         // Empty space clicked -> Perform KNN query at clicked point
         knnQueryPoint = virtualPt;
-        queryKnn(virtualPt.x, virtualPt.y);
+        if (!selectedStart) {
+          startArbitraryCoord = { x: virtualPt.x, y: virtualPt.y };
+          queryKnn(virtualPt.x, virtualPt.y, true, false);
+          durumCubugu.textContent = `Başlangıç konumu haritada seçildi. En yakın durak aranıyor...`;
+        } else if (!selectedEnd) {
+          endArbitraryCoord = { x: virtualPt.x, y: virtualPt.y };
+          queryKnn(virtualPt.x, virtualPt.y, false, true).then(() => {
+            runPathfinding();
+          });
+          durumCubugu.textContent = `Hedef konumu haritada seçildi. Rota hesaplanıyor...`;
+        } else {
+          startArbitraryCoord = { x: virtualPt.x, y: virtualPt.y };
+          selectedStart = null;
+          selectedEnd = null;
+          endArbitraryCoord = null;
+          activePathRoutes = [];
+          activePathStationIds.clear();
+          queryKnn(virtualPt.x, virtualPt.y, true, false);
+          durumCubugu.textContent = `Başlangıç konumu haritada seçildi. En yakın durak aranıyor...`;
+        }
       }
       redraw();
     });
