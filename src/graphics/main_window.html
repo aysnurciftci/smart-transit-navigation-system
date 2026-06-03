@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Akıllı Toplu Taşıma ve Navigasyon Sistemi</title>
+  
+  <style>
+    /* =====================================================
+       PREMIUM LIGHT THEME — SYSTEM STYLE FROM ORIGINAL WEB
+       ===================================================== */
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-sidebar: #ffffff;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --border-light: #f1f5f9;
+      
+      --text-main: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #64748b;
+      
+      --color-teal: #0d9488;
+      --color-teal-hover: #0f766e;
+      --color-teal-glow: rgba(13, 148, 136, 0.08);
+      
+      --color-red: #d02e10;
+      --color-red-glow: rgba(208, 46, 16, 0.12);
+      
+      --color-amber: #f59e0b;
+      --color-green: #16a34a;
+      
+      --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-size: 13px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+    }
+
+    #uygulama {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* =====================================================
+       ORIGINAL LEFT PANEL SIDEBAR
+       ===================================================== */
+    #sol-panel {
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 10;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.03);
+    }
+    #sol-panel > * {
+      flex-shrink: 0;
+    }
+
+    #sol-panel::-webkit-scrollbar {
+      width: 5px;
+    }
+    #sol-panel::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #sol-panel::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 999px;
+    }
+
+    #panel-baslik {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--border-light);
+      background: #fff;
+    }
+    #panel-baslik h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 3px;
+    }
+    #panel-baslik p {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .kontrol-alani {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-light);
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .kontrol-satiri {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .kontrol-etiket {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      font-weight: 500;
+    }
+    .kontrol-etiket span {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    /* Custom range input styling */
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 9999px;
+      background: #e2e8f0;
+      outline: none;
+      margin: 6px 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--color-teal);
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      transition: background-color 0.15s, transform 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: var(--color-teal-hover);
+      transform: scale(1.1);
+    }
+
+    .checkbox-satiri {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-weight: 500;
+      user-select: none;
+    }
+    .checkbox-satiri input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--color-teal);
+      cursor: pointer;
+    }
+
+    /* Tabs Style */
+    #algoritma-secici {
+      display: flex;
+      margin: 12px 16px 6px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #f1f5f9;
+      padding: 2px;
+    }
+    .algoritma-tab {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+    .algoritma-tab.aktif {
+      background: #ffffff;
+      color: var(--text-main);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border-color);
+      border-bottom: 2px solid #2563eb;
+    }
+
+    /* Select elements */
+    select {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text-main);
+      font-family: var(--font-family);
+      font-size: 11.5px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    select:focus {
+      border-color: var(--color-teal);
+    }
+
+    /* Criteria grid layout */
+    .kriter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .kriter-btn {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--text-secondary);
+      font-family: var(--font-family);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .kriter-btn:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: var(--text-main);
+    }
+    .kriter-btn.aktif {
+      background: #eff6ff;
+      border: 1.5px solid #2563eb;
+      color: #2563eb;
+      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.05);
+    }
+
+    /* Dynamic stats panel */
+    #bilgi-panel {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border-light);
+      background: #ffffff;
+    }
+    .bolum-baslik {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    /* 2x2 Grid Stats Cards */
+    .istatistik-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .istatistik-kart {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 12px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .istatistik-sayi {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .istatistik-etiket {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    #dinamik-bolum {
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    #dinamik-bolum::-webkit-scrollbar {
+      width: 4px;
+    }
+    #dinamik-bolum::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 99px;
+    }
+
+    .liste-satiri {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background-color 0.15s;
+      color: var(--text-secondary);
+    }
+    .liste-satiri:hover {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+    .nokta {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .mesafe-yazi {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-left: auto;
+    }
+    .bos-durum {
+      font-size: 11.5px;
+      color: #94a3b8;
+      text-align: center;
+      padding: 12px 0;
+      font-weight: 500;
+    }
+
+    /* Route overview block */
+    .rota-kutusu {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .rota-baslik {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+    .rota-detay {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .durak-listesi {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .durak-etiketi {
+      font-size: 9px;
+      padding: 2px 6px;
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    #yeni-sehir-btn {
+      margin: 12px 16px;
+      padding: 9px 0;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      transition: all 0.15s ease;
+    }
+    #yeni-sehir-btn:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+      color: var(--text-main);
+    }
+
+    /* =====================================================
+       SAĞ TARAF — CANVAS (MAP)
+       ===================================================== */
+    #harita-alani {
+      position: relative;
+      overflow: hidden;
+      background: #e8e0d4; /* Base beige */
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    #zoom-butonlar {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .zoom-btn {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .zoom-btn:hover {
+      background: #f8fafc;
+      color: var(--text-main);
+    }
+
+    #hud-etiket {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 11px;
+      color: var(--text-main);
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    #lejant {
+      position: absolute;
+      bottom: 15px;
+      left: 15px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      pointer-events: none;
+    }
+    .lejant-satiri {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .lejant-renk {
+      width: 16px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .lejant-cizgi {
+      width: 16px;
+      height: 4px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+    .lejant-daire {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid #ffffff;
+      flex-shrink: 0;
+    }
+
+    #durum-cubugu {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 5px 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="uygulama">
+    <!-- LEFT SIDEBAR -->
+    <div id="sol-panel">
+      <div id="panel-baslik">
+        <h1>Transit Navigasyon</h1>
+        <p>Akıllı Toplu Taşıma Sistemi</p>
+      </div>
+
+      <!-- Controls Configuration -->
+      <div class="kontrol-alani">
+        <div class="kontrol-satiri">
+          <div class="kontrol-etiket">İstasyon sayısı <span id="istasyon-sayi-goster">35</span></div>
+          <input type="range" id="istasyon-slider" min="10" max="100" value="35">
+        </div>
+        <div class="kontrol-satiri">
+          <div class="kontrol-etiket">Bağlantı eşiği <span id="esik-goster">220</span></div>
+          <input type="range" id="esik-slider" min="80" max="500" value="220">
+        </div>
+        <label class="checkbox-satiri">
+          <input type="checkbox" id="check-show-labels" onchange="redraw()"> İstasyon etiketlerini göster
+        </label>
+      </div>
+
+      <!-- Action Button -->
+      <button id="yeni-sehir-btn" onclick="regenerateMap()">↻ Yeni Şehir Oluştur</button>
+
+      <!-- Mode Tab Selector -->
+      <div id="algoritma-secici">
+        <button class="algoritma-tab" id="tab-astar" onclick="setAlgorithm('astar')">A* (Sezgisel)</button>
+        <button class="algoritma-tab aktif" id="tab-dijkstra" onclick="setAlgorithm('dijkstra')">Dijkstra (Kesin)</button>
+      </div>
+
+      <!-- Criteria Section -->
+      <div class="kontrol-alani" id="params-box" style="padding-top: 0; border-top: none;">
+        <div class="kontrol-satiri" id="criteria-row">
+          <div class="kontrol-etiket">OPTIMİZASYON KRİTERİ</div>
+          <div class="kriter-grid">
+            <button class="kriter-btn aktif" id="btn-kriter-mesafe" onclick="setCriteria('mesafe')">📍 Mesafe</button>
+            <button class="kriter-btn" id="btn-kriter-zaman" onclick="setCriteria('zaman')">⏱ Süre</button>
+            <button class="kriter-btn" id="btn-kriter-maliyet" onclick="setCriteria('maliyet')">💰 Maliyet</button>
+            <button class="kriter-btn" id="btn-kriter-aktarma" onclick="setCriteria('aktarma')">🔄 Aktarma</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bilgi Panel & Stats -->
+      <div id="bilgi-panel">
+        <div class="bolum-baslik">Graf İstatistikleri</div>
+        <div class="istatistik-grid">
+          <div class="istatistik-kart"><div class="istatistik-sayi" id="stat-istasyon">—</div><div class="istatistik-etiket">İstasyon</div></div>
+          <div class="istatistik-kart"><div class="istatistik-sayi" id="stat-rota">—</div><div class="istatistik-etiket">Rota</div></div>
+          <div class="istatistik-kart"><div class="istatistik-sayi" id="stat-mst">—</div><div class="istatistik-etiket">MST kenarı</div></div>
+          <div class="istatistik-kart"><div class="istatistik-sayi" id="stat-ekspres">—</div><div class="istatistik-etiket">Ekspres hat</div></div>
+        </div>
+
+        <div class="bolum-baslik" style="margin-top: 10px;">BİLGİ</div>
+        <div id="dinamik-bolum">
+          <div class="bos-durum">Haritaya tıklayın</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT CANVAS AREA -->
+    <div id="harita-alani">
+      <canvas id="harita-canvas"></canvas>
+      
+      <!-- Zoom Controllers -->
+      <div id="zoom-butonlar">
+        <button class="zoom-btn" onclick="zoomIn()">+</button>
+        <button class="zoom-btn" onclick="zoomOut()">-</button>
+        <button class="zoom-btn" onclick="zoomReset()">.</button>
+      </div>
+
+      <!-- HUD labels -->
+      <div id="hud-etiket">Bekleniyor...</div>
+
+      <!-- Legend Panel -->
+      <div id="lejant">
+        <div class="lejant-satiri"><div class="lejant-renk" style="background:#d7cfc2; border:0.5px solid #cbbfae"></div>Bina</div>
+        <div class="lejant-satiri"><div class="lejant-renk" style="background:#d1e0ca; border:0.5px solid #c2d2bb"></div>Park</div>
+        <div class="lejant-satiri"><div class="lejant-renk" style="background:#c7d9e8; border:0.5px solid #b8cbdc"></div>Su Alanı</div>
+        <div class="lejant-satiri"><div class="lejant-cizgi" style="background:#ffffff; border:1px solid #c2b7a5"></div>Sokak / Yol</div>
+        <div class="lejant-satiri"><div class="lejant-daire" style="background:#2563eb"></div>Standart İstasyon</div>
+        <div class="lejant-satiri"><div class="lejant-daire" style="background:#16a34a"></div>Terminal (Başlangıç/Hedef)</div>
+        <div class="lejant-satiri"><div class="lejant-daire" style="background:#f59e0b"></div>Aktarma İstasyonu</div>
+        <div class="lejant-satiri">
+          <svg width="16" height="4" style="display:block;">
+            <line x1="0" y1="2" x2="16" y2="2" stroke="#d02e10" stroke-width="3"></line>
+            <line x1="0" y1="2" x2="16" y2="2" stroke="#fff" stroke-dasharray="3,3" stroke-width="1"></line>
+          </svg>
+          Navigasyon Rotası
+        </div>
+      </div>
+
+      <div id="durum-cubugu">Harita Yükleniyor...</div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://127.0.0.1:5000/api/transit';
+
+    const canvas = document.getElementById('harita-canvas');
+    const ctx = canvas.getContext('2d');
+    const hudEtiket = document.getElementById('hud-etiket');
+    const durumCubugu = document.getElementById('durum-cubugu');
+    const dinamikBolum = document.getElementById('dinamik-bolum');
+
+    function srng(tohum) {
+      let s = (tohum >>> 0) || 1;
+      return function() {
+        s ^= s << 13; s ^= s >> 17; s ^= s << 5; s >>>= 0;
+        return s / 0xffffffff;
+      };
+    }
+
+    let stations = [];
+    let routes = [];
+    let decorations = [];
+    let seed = 1;
+
+    let activeAlgorithm = 'dijkstra';
+    let activeCriteria = 'mesafe';
+    let selectedStart = null;
+    let selectedEnd = null;
+    let knnQueryPoint = null;
+    let knnResults = [];
+    let activePathRoutes = [];
+    let activePathStationIds = new Set();
+    let activePathCost = 0;
+
+    let scale = 1.0;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let dragStartOffset = { x: 0, y: 0 };
+
+    // Sliders
+    document.getElementById('istasyon-slider').oninput = function() {
+      document.getElementById('istasyon-sayi-goster').textContent = this.value;
+    };
+    document.getElementById('esik-slider').oninput = function() {
+      document.getElementById('esik-goster').textContent = this.value;
+    };
+
+    function setAlgorithm(algo) {
+      activeAlgorithm = algo;
+      document.getElementById('tab-astar').classList.toggle('aktif', algo === 'astar');
+      document.getElementById('tab-dijkstra').classList.toggle('aktif', algo === 'dijkstra');
+      document.getElementById('criteria-row').style.display = algo === 'dijkstra' ? 'block' : 'none';
+      
+      if (selectedStart && selectedEnd) {
+        runPathfinding();
+      } else {
+        updateReportPanel();
+        redraw();
+      }
+    }
+
+    function setCriteria(crit) {
+      activeCriteria = crit;
+      
+      document.getElementById('btn-kriter-mesafe').classList.toggle('aktif', crit === 'mesafe');
+      document.getElementById('btn-kriter-zaman').classList.toggle('aktif', crit === 'zaman');
+      document.getElementById('btn-kriter-maliyet').classList.toggle('aktif', crit === 'maliyet');
+      document.getElementById('btn-kriter-aktarma').classList.toggle('aktif', crit === 'aktarma');
+      
+      if (selectedStart && selectedEnd) {
+        runPathfinding();
+      } else {
+        updateReportPanel();
+        redraw();
+      }
+    }
+
+    function resetState() {
+      selectedStart = null;
+      selectedEnd = null;
+      knnQueryPoint = null;
+      knnResults = [];
+      activePathRoutes = [];
+      activePathStationIds.clear();
+      activePathCost = 0;
+      
+      const startSelect = document.getElementById('start-select');
+      const endSelect = document.getElementById('end-select');
+      if (startSelect) startSelect.value = "";
+      if (endSelect) endSelect.value = "";
+      
+      hudEtiket.textContent = 'Navigasyon & KNN Modu';
+      durumCubugu.textContent = 'Bir boşluğa tıklayarak KNN, istasyona tıklayarak Rota çizin.';
+      updateReportPanel();
+    }
+
+    function toCanvasCoords(vx, vy) {
+      return { x: vx * scale + offsetX, y: vy * scale + offsetY };
+    }
+
+    function toVirtualCoords(cx, cy) {
+      return { x: (cx - offsetX) / scale, y: (cy - offsetY) / scale };
+    }
+
+    function fitMap() {
+      const margin = 40;
+      const scaleX = (canvas.width - margin * 2) / 800;
+      const scaleY = (canvas.height - margin * 2) / 600;
+      scale = Math.min(scaleX, scaleY);
+      if (scale < 0.1) scale = 1.0;
+      offsetX = (canvas.width - 800 * scale) / 2;
+      offsetY = (canvas.height - 600 * scale) / 2;
+    }
+
+    function getStationDegree(stationId) {
+      return routes.filter(r => r.sourceId === stationId || r.targetId === stationId).length;
+    }
+
+    // Zoom shortcuts
+    window.zoomIn = function() { scale *= 1.25; redraw(); };
+    window.zoomOut = function() { scale *= 0.8; redraw(); };
+    window.zoomReset = function() { fitMap(); redraw(); };
+
+    // =====================================================
+    // BACKEND API INTEGRATIONS
+    // =====================================================
+    function regenerateMap(keepSeed = false) {
+      if (!keepSeed) {
+        seed = Math.floor(Math.random() * 99999) + 1;
+      }
+      
+      const numStations = document.getElementById('istasyon-slider').value;
+      const threshold = document.getElementById('esik-slider').value;
+      const enableBundling = true;
+
+      durumCubugu.textContent = 'C# API ile yeni şehir haritası yükleniyor...';
+
+      fetch(API_URL + '/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('API server unreachable');
+        return res.json();
+      })
+      .then(data => {
+        stations = data.stations.map(s => ({ id: s.id, name: s.name, x: s.x, y: s.y }));
+        routes = data.routes.map(r => ({
+          id: r.id,
+          sourceId: r.sourceId,
+          targetId: r.targetId,
+          distance: r.distance,
+          time: r.time,
+          cost: r.cost,
+          pathPoints: r.pathPoints ? r.pathPoints.map(p => ({ x: p.x, y: p.y })) : []
+        }));
+
+        // Reset selection dropdowns if they exist
+        const startSelect = document.getElementById('start-select');
+        const endSelect = document.getElementById('end-select');
+        if (startSelect && endSelect) {
+          startSelect.innerHTML = '<option value="">-- Seçiniz (Başlangıç) --</option>';
+          endSelect.innerHTML = '<option value="">-- Seçiniz (Hedef) --</option>';
+          
+          stations.forEach(s => {
+            const optStart = document.createElement('option');
+            optStart.value = s.id;
+            optStart.textContent = s.name;
+            startSelect.appendChild(optStart);
+
+            const optEnd = document.createElement('option');
+            optEnd.value = s.id;
+            optEnd.textContent = s.name;
+            endSelect.appendChild(optEnd);
+          });
+        }
+
+        // Fill Stats Box (Exact matching stats cards from original layout)
+        const mstCount = routes.filter(r => r.distance < threshold).length;
+        const expCount = routes.filter(r => r.distance >= threshold).length;
+
+        document.getElementById('stat-istasyon').textContent = stations.length;
+        document.getElementById('stat-rota').textContent = routes.length;
+        document.getElementById('stat-mst').textContent = mstCount;
+        document.getElementById('stat-ekspres').textContent = expCount;
+
+        // Generate procedural decor
+        generateDecorations();
+        
+        fitMap();
+        resetState();
+        durumCubugu.textContent = 'Harita Hazır — Tıklayarak etkileşime başlayın.';
+        redraw();
+      })
+      .catch(err => {
+        console.error("API Bağlantı veya Kod Hatası:", err);
+        durumCubugu.textContent = 'HATA: API sunucusu çalışmıyor (localhost:5000)';
+        dinamikBolum.innerHTML = '<div class="bos-durum" style="color:#ef4444">C# backend API sunucusu kapalı! Lütfen cmd üzerinden "dotnet run" komutu ile sunucuyu başlatın.</div>';
+      });
+    }
+
+    function queryKnn(x, y) {
+      const k = 4;
+      durumCubugu.textContent = 'En yakın istasyonlar taranıyor...';
+
+      fetch(`${API_URL}/locate?x=${x}&y=${y}`)
+      .then(res => res.json())
+      .then(nearest => {
+        let sorted = stations.map(s => ({
+          station: s,
+          d: Math.hypot(s.x - x, s.y - y)
+        }));
+        sorted.sort((a, b) => a.d - b.d);
+
+        let nearestList = sorted.slice(0, k).map(o => o.station);
+        if (nearest) {
+          const apiNearest = stations.find(s => s.id === nearest.id);
+          if (apiNearest) {
+            nearestList = nearestList.filter(s => s.id !== apiNearest.id);
+            nearestList.unshift(apiNearest);
+            if (nearestList.length > k) nearestList = nearestList.slice(0, k);
+          }
+        }
+
+        knnResults = nearestList;
+
+        updateReportPanel();
+        durumCubugu.textContent = 'Komşu araması tamamlandı.';
+        redraw();
+      })
+      .catch(err => {
+        console.error("KNN Hatası:", err);
+      });
+    }
+
+    function updateReportPanel() {
+      let html = '';
+
+      if (selectedStart && selectedEnd && activePathStationIds.size > 0) {
+        const algo = activeAlgorithm;
+        const criteria = activeCriteria;
+        const unit = algo === 'astar' ? 'm' : (criteria === 'zaman' ? 'dk' : (criteria === 'maliyet' ? 'TL' : (criteria === 'aktarma' ? 'durak' : 'm')));
+        const criteriaLabel = algo === 'astar' ? 'Mesafe' : (criteria === 'aktarma' ? 'AKTARMA' : criteria.toUpperCase());
+
+        html += `<div class="bolum-baslik">Navigasyon Rota Özeti</div>`;
+        html += `<div class="rota-kutusu">
+          <div class="rota-baslik">${selectedStart.name} ➔ ${selectedEnd.name}</div>
+          <div class="rota-detay">Algoritma: <strong>${algo.toUpperCase()}</strong> (${criteriaLabel})<br>Maliyet: <strong>${Math.round(activePathCost, 1)} ${unit}</strong></div>
+          <div class="durak-listesi">`;
+
+        activePathStationIds.forEach(sid => {
+          const st = stations.find(s => s.id === sid);
+          if (st) {
+            const deg = getStationDegree(sid);
+            const isTerminal = sid === selectedStart.id || sid === selectedEnd.id;
+            const style = isTerminal ? 'style="background:#f0fdf4; border-color:#86efac; color:#16a34a"' : (deg >= 3 ? 'style="background:#fffbeb; border-color:#fde68a; color:#d97706"' : '');
+            html += `<span class="durak-etiketi" ${style}>${st.name}</span>`;
+          }
+        });
+        html += `</div></div>`;
+      } else if (selectedStart && !selectedEnd) {
+        html += `<div class="bolum-baslik">Navigasyon Rota Özeti</div>`;
+        html += `<div class="rota-kutusu">
+          <div class="rota-baslik">${selectedStart.name} ➔ Hedef Seçilmedi</div>
+          <div class="rota-detay" style="color: var(--text-muted)">Navigasyonu tamamlamak için haritadan veya listeden bir hedef istasyon seçin.</div>
+        </div>`;
+      }
+
+      if (knnResults.length > 0 && knnQueryPoint) {
+        const k = 4;
+        html += `<div class="bolum-baslik" style="margin-top: 14px;">En Yakın ${k} İstasyon</div>`;
+        html += `<div style="display: flex; flex-direction: column; gap: 4px;">`;
+        knnResults.forEach(s => {
+          const d = Math.round(Math.hypot(s.x - knnQueryPoint.x, s.y - knnQueryPoint.y));
+          html += `<div class="liste-satiri" onclick="selectStationDirectly(${s.id})">
+            <div class="nokta" style="background:#16a34a"></div>
+            <div style="flex:1;">${s.name}</div>
+            <div class="mesafe-yazi">${d}m</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      if (!html) {
+        html = '<div class="bos-durum">Haritada boşluğa tıklayarak en yakın durakları görebilir, bir istasyona tıklayarak rota başlatabilirsiniz.</div>';
+      } else {
+        html += `<div style="font-size:10px;color:#888;margin-top:14px; cursor:pointer; text-decoration:underline;" onclick="resetState(); redraw();">← Sıfırla</div>`;
+      }
+
+      dinamikBolum.innerHTML = html;
+    }
+
+    window.selectStationDirectly = function(id) {
+      const clickedStation = stations.find(s => s.id === id);
+      if (!clickedStation) return;
+      
+      if (!selectedStart) {
+        selectedStart = clickedStation;
+        const startSelect = document.getElementById('start-select');
+        if (startSelect) startSelect.value = id;
+        knnQueryPoint = { x: clickedStation.x, y: clickedStation.y };
+        queryKnn(clickedStation.x, clickedStation.y);
+        durumCubugu.textContent = `Başlangıç seçildi: ${selectedStart.name}. Hedef istasyonu seçin.`;
+      } else if (!selectedEnd) {
+        if (clickedStation.id === selectedStart.id) {
+          resetState();
+          redraw();
+        } else {
+          selectedEnd = clickedStation;
+          const endSelect = document.getElementById('end-select');
+          if (endSelect) endSelect.value = id;
+          runPathfinding();
+        }
+      } else {
+        selectedStart = clickedStation;
+        selectedEnd = null;
+        const startSelect = document.getElementById('start-select');
+        if (startSelect) startSelect.value = id;
+        knnQueryPoint = { x: clickedStation.x, y: clickedStation.y };
+        queryKnn(clickedStation.x, clickedStation.y);
+        durumCubugu.textContent = `Başlangıç seçildi: ${selectedStart.name}. Hedef istasyonu seçin.`;
+        activePathRoutes = [];
+        activePathStationIds.clear();
+      }
+      redraw();
+    };
+
+    function onStartStationChange() {
+      const sId = document.getElementById('start-select').value;
+      if (!sId) {
+        selectedStart = null;
+        activePathRoutes = [];
+        activePathStationIds.clear();
+        redraw();
+        updateReportPanel();
+        return;
+      }
+      selectedStart = stations.find(s => s.id == sId);
+      if (selectedStart) {
+        knnQueryPoint = { x: selectedStart.x, y: selectedStart.y };
+        queryKnn(selectedStart.x, selectedStart.y);
+      }
+      if (selectedStart && selectedEnd) {
+        runPathfinding();
+      } else {
+        updateReportPanel();
+        redraw();
+      }
+    }
+
+    function onEndStationChange() {
+      const eId = document.getElementById('end-select').value;
+      if (!eId) {
+        selectedEnd = null;
+        activePathRoutes = [];
+        activePathStationIds.clear();
+        redraw();
+        updateReportPanel();
+        return;
+      }
+      selectedEnd = stations.find(s => s.id == eId);
+      if (selectedStart && selectedEnd) {
+        runPathfinding();
+      } else {
+        updateReportPanel();
+        redraw();
+      }
+    }
+
+    function runPathfinding() {
+      const sId = selectedStart ? selectedStart.id : null;
+      const eId = selectedEnd ? selectedEnd.id : null;
+      
+      if (!sId || !eId) return;
+      
+      if (sId === eId) {
+        durumCubugu.textContent = 'Hata: Başlangıç ve hedef aynı.';
+        dinamikBolum.innerHTML = '<div class="bos-durum">Başlangıç ve hedef farklı olmalıdır.</div>';
+        activePathRoutes = [];
+        activePathStationIds.clear();
+        redraw();
+        return;
+      }
+
+      selectedStart = stations.find(s => s.id == sId);
+      selectedEnd = stations.find(s => s.id == eId);
+
+      const algo = activeAlgorithm;
+      const criteria = activeCriteria;
+
+      durumCubugu.textContent = 'Rota çiziliyor...';
+
+      fetch(`${API_URL}/find-path?startId=${sId}&endId=${eId}&algorithm=${algo}&criteria=${criteria}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.yol && data.yol.length > 0) {
+          activePathStationIds = new Set(data.yol);
+          activePathCost = data.toplamMaliyet;
+
+          activePathRoutes = data.yolRotalar.map(r => ({
+            id: r.id,
+            sourceId: r.sourceId,
+            targetId: r.targetId,
+            pathPoints: r.pathPoints ? r.pathPoints.map(p => ({ x: p.x, y: p.y })) : []
+          }));
+
+          updateReportPanel();
+          durumCubugu.textContent = 'Rota başarıyla çizildi.';
+        } else {
+          activePathRoutes = [];
+          activePathStationIds.clear();
+          durumCubugu.textContent = 'Yol bulunamadı!';
+          updateReportPanel();
+        }
+        redraw();
+      })
+      .catch(err => {
+        console.error("Rota Hatası:", err);
+        durumCubugu.textContent = 'Hata: Rota sunucudan alınamadı.';
+      });
+    }
+
+    // =====================================================
+    // GEOMETRIC HELPERS
+    // =====================================================
+    function intersects(p1, p2, p3, p4) {
+      function ccw(A, B, C) {
+        return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
+      }
+      return (ccw(p1, p3, p4) !== ccw(p2, p3, p4)) && (ccw(p1, p2, p3) !== ccw(p1, p2, p4));
+    }
+
+    function distToSegment(px, py, vx, vy, wx, wy) {
+      const l2 = Math.pow(wx - vx, 2) + Math.pow(wy - vy, 2);
+      if (l2 === 0) return Math.hypot(px - vx, py - vy);
+      let t = ((px - vx) * (wx - vx) + (py - vy) * (wy - vy)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(px - (vx + t * (wx - vx)), py - (vy + t * (wy - vy)));
+    }
+
+    function isPointInPolygon(pt, poly) {
+      const x = pt.x, y = pt.y;
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i].x, yi = poly[i].y;
+        const xj = poly[j].x, yj = poly[j].y;
+        const intersect = ((yi > y) !== (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function shrinkPolygon(pts, m) {
+      const n = pts.length;
+      if (n < 3) return [];
+      
+      let area = 0;
+      for (let i = 0; i < n; i++) {
+        let j = (i + 1) % n;
+        area += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+      }
+      const winding = area > 0 ? 1 : -1;
+      
+      const normals = [];
+      for (let i = 0; i < n; i++) {
+        const p1 = pts[i], p2 = pts[(i + 1) % n];
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        const L = Math.hypot(dx, dy) || 1;
+        normals.push({ x: -dy / L * winding, y: dx / L * winding });
+      }
+      
+      const res = [];
+      for (let i = 0; i < n; i++) {
+        const n1 = normals[(i - 1 + n) % n], n2 = normals[i];
+        const bx = n1.x + n2.x, by = n1.y + n2.y;
+        const bl = Math.hypot(bx, by) || 1;
+        const dot = (bx / bl) * n2.x + (by / bl) * n2.y;
+        let d = Math.abs(dot) > 0.1 ? m / dot : m * 1.5;
+        if (d > m * 4) d = m * 4;
+        
+        res.push({ x: pts[i].x + (bx / bl) * d, y: pts[i].y + (by / bl) * d });
+      }
+
+      let newArea = 0;
+      for (let i = 0; i < res.length; i++) {
+        let j = (i + 1) % res.length;
+        newArea += res[i].x * res[j].y - res[j].x * res[i].y;
+      }
+      if (newArea * winding < 0) return [];
+      
+      return res;
+    }
+
+    function generateDecorations() {
+      decorations = [];
+      if (stations.length === 0) return;
+
+      const r = srng(seed);
+      const cols = 24, rows = 18;
+      const cw = 800 / cols, ch = 600 / rows;
+      
+      const grid = [];
+      for (let row = 0; row <= rows; row++) {
+        grid.push([]);
+        for (let col = 0; col <= cols; col++) {
+          const isEdge = (col === 0 || col === cols || row === 0 || row === rows);
+          const jx = isEdge ? 0 : (r() - 0.5) * cw * 0.7;
+          const jy = isEdge ? 0 : (r() - 0.5) * ch * 0.7;
+          grid[row].push({
+            x: Math.max(2, Math.min(800 - 2, col * cw + jx)),
+            y: Math.max(2, Math.min(600 - 2, row * ch + jy))
+          });
+        }
+      }
+
+      const rawFaces = [];
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const face = [grid[row][col], grid[row][col+1], grid[row+1][col+1], grid[row+1][col]];
+          if (r() < 0.5) {
+            rawFaces.push([face[0], face[1], face[2]]);
+            rawFaces.push([face[0], face[2], face[3]]);
+          } else {
+            rawFaces.push(face);
+          }
+        }
+      }
+
+      rawFaces.forEach(pts => {
+        const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+        const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+        let remove = false;
+
+        for (let st of stations) {
+          if (Math.hypot(cx - st.x, cy - st.y) < 18) { remove = true; break; }
+          if (isPointInPolygon(st, pts)) { remove = true; break; }
+        }
+
+        if (remove) return;
+
+        for (let rt of routes) {
+          const rPts = rt.pathPoints.length > 1 ? rt.pathPoints : [stations.find(s => s.id === rt.sourceId), stations.find(s => s.id === rt.targetId)];
+          for (let i = 0; i < rPts.length - 1; i++) {
+            const p1 = rPts[i], p2 = rPts[i+1];
+            if (!p1 || !p2) continue;
+
+            for (let j = 0; j < pts.length; j++) {
+              const q1 = pts[j], q2 = pts[(j+1)%pts.length];
+              if (intersects(p1, p2, q1, q2)) { remove = true; break; }
+            }
+            if (remove) break;
+
+            if (distToSegment(cx, cy, p1.x, p1.y, p2.x, p2.y) < 10) { remove = true; break; }
+
+            for (let pt of pts) {
+              if (distToSegment(pt.x, pt.y, p1.x, p1.y, p2.x, p2.y) < 8) { remove = true; break; }
+            }
+            if (remove) break;
+          }
+          if (remove) break;
+        }
+
+        if (!remove) {
+          const rv = r();
+          if (rv < 0.02) return;
+
+          const shrunk = shrinkPolygon(pts, 5);
+          const area = Math.abs(shrunk.reduce((a, b, i) => a + (b.x * shrunk[(i+1)%shrunk.length].y - shrunk[(i+1)%shrunk.length].x * b.y), 0) / 2);
+          
+          if (shrunk.length >= 3 && area > 15) {
+            let tip = 'bina';
+            if (rv > 0.90) tip = 'park';
+            else if (rv > 0.80) tip = 'su';
+
+            decorations.push({ pts: shrunk, tip: tip, cx: cx, cy: cy, area: area, randSeed: Math.floor(r() * 99999) });
+          }
+        }
+      });
+    }
+
+    // =====================================================
+    // RENDERING
+    // =====================================================
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.save();
+      ctx.translate(offsetX, offsetY);
+      ctx.scale(scale, scale);
+
+      // Zemin Rengi (e8e0d4)
+      ctx.fillStyle = '#e8e0d4';
+      ctx.fillRect(0, 0, 800, 600);
+
+      // Grid System
+      ctx.strokeStyle = '#d7cfc2';
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([2, 5]);
+      for (let x = 0; x <= 800; x += 50) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 600); ctx.stroke();
+      }
+      for (let y = 0; y <= 600; y += 50) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(800, y); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      const activeRoutes = new Set(activePathRoutes.map(r => r.id));
+
+      // 1. DECORATION BLOCKS
+      decorations.forEach(d => {
+        ctx.beginPath();
+        ctx.moveTo(d.pts[0].x, d.pts[0].y);
+        for (let i = 1; i < d.pts.length; i++) ctx.lineTo(d.pts[i].x, d.pts[i].y);
+        ctx.closePath();
+
+        if (d.tip === 'park') {
+          ctx.fillStyle = '#d1e0ca';
+          ctx.fill();
+          ctx.strokeStyle = '#c2d2bb';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+          
+          const r2 = srng(d.randSeed);
+          ctx.fillStyle = 'rgba(50,120,35,0.2)';
+          const n = Math.floor(2 + r2() * 3);
+          const spread = Math.sqrt(d.area) * 0.15;
+          for (let i = 0; i < n; i++) {
+            const angle = r2() * Math.PI * 2;
+            const dist = r2() * spread;
+            const tx = d.cx + Math.cos(angle) * dist;
+            const ty = d.cy + Math.sin(angle) * dist;
+            ctx.beginPath(); ctx.arc(tx, ty, 2 + r2() * 3, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        else if (d.tip === 'su') {
+          ctx.fillStyle = '#c7d9e8';
+          ctx.fill();
+          ctx.strokeStyle = '#b8cbdc';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.arc(d.cx - 3, d.cy - 1, 4, 0, Math.PI, true);
+          ctx.arc(d.cx + 3, d.cy - 1, 4, 0, Math.PI, true);
+          ctx.stroke();
+        }
+        else {
+          ctx.fillStyle = '#d7cfc2';
+          ctx.fill();
+          ctx.strokeStyle = '#cbbfae';
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+
+          const size = Math.sqrt(d.area) * 0.12;
+          if (size > 6) {
+            ctx.strokeStyle = 'rgba(138,148,168,0.25)';
+            ctx.lineWidth = 0.3;
+            const subdivisions = 3;
+            const step = size / subdivisions;
+            for (let s = 0; s < subdivisions; s++) {
+              for (let c = 0; c < subdivisions; c++) {
+                ctx.strokeRect(d.cx - size / 2 + c * step + 1, d.cy - size / 2 + s * step + 1, step - 2, step - 2);
+              }
+            }
+          }
+        }
+      });
+
+      const onlyPath = false;
+      const hideExpress = false;
+
+      // 2. STREETS AND ROADS
+      if (!onlyPath) {
+        ctx.strokeStyle = '#c2b7a5';
+        ctx.lineWidth = 12;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        routes.forEach(r => {
+          if (hideExpress && r.distance >= 220) return;
+          ctx.beginPath();
+          if (r.pathPoints.length > 1) {
+            ctx.moveTo(r.pathPoints[0].x, r.pathPoints[0].y);
+            for (let i = 1; i < r.pathPoints.length; i++) ctx.lineTo(r.pathPoints[i].x, r.pathPoints[i].y);
+          } else {
+            const s = stations.find(st => st.id === r.sourceId);
+            const t = stations.find(st => st.id === r.targetId);
+            ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y);
+          }
+          ctx.stroke();
+        });
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 7;
+        routes.forEach(r => {
+          if (hideExpress && r.distance >= 220) return;
+          ctx.beginPath();
+          if (r.pathPoints.length > 1) {
+            ctx.moveTo(r.pathPoints[0].x, r.pathPoints[0].y);
+            for (let i = 1; i < r.pathPoints.length; i++) ctx.lineTo(r.pathPoints[i].x, r.pathPoints[i].y);
+          } else {
+            const s = stations.find(st => st.id === r.sourceId);
+            const t = stations.find(st => st.id === r.targetId);
+            ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y);
+          }
+          ctx.stroke();
+        });
+      }
+
+      // 3. TRANSIT NETWORK LINES
+      routes.forEach(r => {
+        const onPath = activeRoutes.has(r.id);
+        if (onlyPath && !onPath) return;
+        if (hideExpress && r.distance >= 220 && !onPath) return;
+
+        ctx.beginPath();
+        if (r.pathPoints.length > 1) {
+          ctx.moveTo(r.pathPoints[0].x, r.pathPoints[0].y);
+          for (let i = 1; i < r.pathPoints.length - 1; i++) {
+            const mx = (r.pathPoints[i].x + r.pathPoints[i+1].x) / 2;
+            const my = (r.pathPoints[i].y + r.pathPoints[i+1].y) / 2;
+            ctx.quadraticCurveTo(r.pathPoints[i].x, r.pathPoints[i].y, mx, my);
+          }
+          ctx.lineTo(r.pathPoints[r.pathPoints.length - 1].x, r.pathPoints[r.pathPoints.length - 1].y);
+        } else {
+          const s = stations.find(st => st.id === r.sourceId);
+          const t = stations.find(st => st.id === r.targetId);
+          ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y);
+        }
+
+        if (onPath) {
+          ctx.strokeStyle = 'rgba(208, 46, 16, 0.15)';
+          ctx.lineWidth = 14;
+          ctx.stroke();
+          
+          ctx.strokeStyle = '#d02e10';
+          ctx.lineWidth = 4;
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([5, 5]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } 
+        else if (r.distance >= 220) {
+          ctx.strokeStyle = 'rgba(37, 99, 235, 0.55)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        else {
+          ctx.strokeStyle = 'rgba(20, 20, 40, 0.3)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      });
+
+      // 4. KNN HIGHLIGHTS
+      if (knnQueryPoint && knnResults.length > 0) {
+        let maxDist = 0;
+        knnResults.forEach(s => {
+          const d = Math.hypot(s.x - knnQueryPoint.x, s.y - knnQueryPoint.y);
+          if (d > maxDist) maxDist = d;
+        });
+
+        ctx.strokeStyle = 'rgba(22, 163, 74, 0.32)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.arc(knnQueryPoint.x, knnQueryPoint.y, maxDist, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.strokeStyle = 'rgba(22, 163, 74, 0.38)';
+        ctx.lineWidth = 0.8;
+        knnResults.forEach(s => {
+          ctx.beginPath();
+          ctx.moveTo(knnQueryPoint.x, knnQueryPoint.y);
+          ctx.lineTo(s.x, s.y);
+          ctx.stroke();
+        });
+
+        ctx.fillStyle = '#16a34a';
+        ctx.beginPath(); ctx.arc(knnQueryPoint.x, knnQueryPoint.y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.stroke();
+      }
+
+      // 5. STATIONS
+      stations.forEach(s => {
+        const isStart = selectedStart && s.id === selectedStart.id;
+        const isEnd = selectedEnd && s.id === selectedEnd.id;
+        const onPath = activePathStationIds.has(s.id);
+        const deg = getStationDegree(s.id);
+        const isTransfer = onPath && !isStart && !isEnd && deg >= 3;
+
+        let sColor = '#2563eb';
+        let rad = 5.5;
+
+        if (isStart || isEnd) {
+          sColor = '#16a34a';
+          rad = 6.5;
+        } else if (onPath) {
+          sColor = '#d02e10';
+          rad = 5.5;
+        }
+
+        ctx.fillStyle = isStart || isEnd ? 'rgba(22,163,74,0.13)' : (onPath ? 'rgba(208,46,16,0.12)' : 'rgba(37,99,235,0.10)');
+        ctx.beginPath(); ctx.arc(s.x, s.y, rad + 5, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(s.x, s.y, rad + 2, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = sColor;
+        ctx.beginPath(); ctx.arc(s.x, s.y, rad, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${rad * 1.3}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('M', s.x, s.y + 0.5);
+
+        if (isTransfer) {
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, rad + 5.5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        const showLabels = document.getElementById('check-show-labels').checked;
+        if (showLabels || isStart || isEnd || onPath) {
+          ctx.font = '9px Arial';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          
+          const textW = ctx.measureText(s.name).width;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+          ctx.fillRect(s.x + rad + 3, s.y - 6, textW + 5, 12);
+
+          ctx.fillStyle = '#1e293b';
+          ctx.fillText(s.name, s.x + rad + 5, s.y + 0.5);
+        }
+      });
+
+      ctx.restore();
+    }
+
+    // =====================================================
+    // INTERACTION LISTENERS
+    // =====================================================
+    canvas.addEventListener('mousedown', e => {
+      isDragging = false;
+      dragStart = { x: e.clientX, y: e.clientY };
+      dragStartOffset = { x: offsetX, y: offsetY };
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX - rect.left;
+      const clientY = e.clientY - rect.top;
+
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+
+      if (e.buttons > 0 && Math.hypot(dx, dy) > 4) {
+        isDragging = true;
+        offsetX = dragStartOffset.x + dx;
+        offsetY = dragStartOffset.y + dy;
+        redraw();
+      }
+
+      const virtualPt = toVirtualCoords(clientX, clientY);
+      const hovered = stations.find(s => Math.hypot(s.x - virtualPt.x, s.y - virtualPt.y) < 14 / scale);
+
+      if (hovered && !isDragging) {
+        canvas.style.cursor = 'pointer';
+      } else {
+        canvas.style.cursor = isDragging ? 'grabbing' : 'default';
+      }
+    });
+
+    canvas.addEventListener('mouseup', e => {
+      if (isDragging) {
+        isDragging = false;
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX - rect.left;
+      const clientY = e.clientY - rect.top;
+
+      const virtualPt = toVirtualCoords(clientX, clientY);
+      const clickedStation = stations.find(s => Math.hypot(s.x - virtualPt.x, s.y - virtualPt.y) < 14 / scale);
+
+      if (clickedStation) {
+        // Station clicked
+        if (!selectedStart) {
+          selectedStart = clickedStation;
+          const startSelect = document.getElementById('start-select');
+          if (startSelect) startSelect.value = clickedStation.id;
+          
+          // Show its K nearest neighbors
+          knnQueryPoint = { x: clickedStation.x, y: clickedStation.y };
+          queryKnn(clickedStation.x, clickedStation.y);
+          
+          durumCubugu.textContent = `Başlangıç seçildi: ${selectedStart.name}. Hedef istasyonu seçin.`;
+        } else if (!selectedEnd) {
+          if (clickedStation.id === selectedStart.id) {
+            resetState();
+            redraw();
+          } else {
+            selectedEnd = clickedStation;
+            const endSelect = document.getElementById('end-select');
+            if (endSelect) endSelect.value = clickedStation.id;
+            runPathfinding();
+          }
+        } else {
+          // If both are set, reset and set new start
+          selectedStart = clickedStation;
+          selectedEnd = null;
+          const startSelect = document.getElementById('start-select');
+          if (startSelect) startSelect.value = clickedStation.id;
+          
+          // Show K nearest neighbors for the new start
+          knnQueryPoint = { x: clickedStation.x, y: clickedStation.y };
+          queryKnn(clickedStation.x, clickedStation.y);
+          
+          durumCubugu.textContent = `Başlangıç seçildi: ${selectedStart.name}. Hedef istasyonu seçin.`;
+          activePathRoutes = [];
+          activePathStationIds.clear();
+        }
+      } else {
+        // Empty space clicked -> Perform KNN query at clicked point
+        knnQueryPoint = virtualPt;
+        queryKnn(virtualPt.x, virtualPt.y);
+      }
+      redraw();
+    });
+
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      const scaleFactor = e.deltaY < 0 ? 1.15 : 0.85;
+
+      offsetX = mx - (mx - offsetX) * scaleFactor;
+      offsetY = my - (my - offsetY) * scaleFactor;
+      scale *= scaleFactor;
+
+      if (scale < 0.15) scale = 0.15;
+      if (scale > 15.0) scale = 15.0;
+
+      redraw();
+    }, { passive: false });
+
+    window.onresize = () => {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+      fitMap();
+      redraw();
+    };
+
+    // INIT
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+    regenerateMap();
+  </script>
+</body>
+</html>
