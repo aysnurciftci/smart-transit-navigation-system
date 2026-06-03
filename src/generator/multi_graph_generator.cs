@@ -1,4 +1,5 @@
 /*
+Yazarlar: Ege Başaran, Bora Pektaş
 Bu kısım Graph oluşturan classı ve metodları içerir. 5 girdisi vardır:
 1-) İstasyon sayısı
 2-) Maksimum X mesafesi (haritanın yatay ekseni)
@@ -31,7 +32,6 @@ atıp Graphınız ile istediğinizi yapabilirsiniz.
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using SmartTransit.Models;
 using SmartTransit.MultiGraph;
 
@@ -95,13 +95,15 @@ namespace SmartTransit.Generator
             }
 
             // Mesafeye göre küçükten büyüğe sırala (Kruskal hazırlığı)
-            var sortedCandidates = candidates.OrderBy(r => r.Distance).ToList();
+            candidates.Sort((a, b) => a.Distance.CompareTo(b.Distance));
 
             // MST için Union-Find yapısı
-            int[] parent = Enumerable.Range(0, stations.Count).ToArray();
+            int[] parent = new int[stations.Count];
+            for (int i = 0; i < stations.Count; i++) parent[i] = i;
+            
             int Find(int i) => parent[i] == i ? i : parent[i] = Find(parent[i]);
 
-            foreach (var route in sortedCandidates)
+            foreach (var route in candidates)
             {
                 int rootSource = Find(route.Source.Id);
                 int rootTarget = Find(route.Target.Id);

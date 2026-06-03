@@ -1,5 +1,5 @@
 /*
-  AUTHOR: Aysenur Ciftci
+  Yazarlar: Ayşenur Çiftçi
   MODULE: QuadTree - Eşzamanlı Simülasyon Korumalı Konumsal İndeksleme Engine
 
   DESIGN RATIONALE & ARCHITECTURAL COMPARISON (MİMARİ TASARIM GEREKÇESİ)

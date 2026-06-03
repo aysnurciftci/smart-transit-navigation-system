@@ -79,6 +79,57 @@ namespace SmartTransit.Tests
                 Console.WriteLine("   -> NO PATH FOUND. (This should not happen with the MST generator unless stations are 0)");
             }
 
+            Console.WriteLine("\n5. Testing Spatial Locator (QuadTree)...");
+            SmartTransit.DataStructures.Locator locator = new SmartTransit.DataStructures.Locator(myCityMap, 800, 600);
+            
+            // Simulate a user clicking randomly on the map (center)
+            double clickX = 400;
+            double clickY = 300;
+            Console.WriteLine($"   -> Simulating user click at X: {clickX}, Y: {clickY}");
+            var nearestToClick = locator.LocateNearestStation(clickX, clickY);
+            if (nearestToClick != null)
+            {
+                Console.WriteLine($"   -> Nearest station found in O(log N) time: Station {nearestToClick.Id} at ({nearestToClick.X:F1}, {nearestToClick.Y:F1})");
+            }
+            else
+            {
+                Console.WriteLine("   -> No station found.");
+            }
+
+            Console.WriteLine("\n6. Testing Dijkstra Pathfinding Algorithm (Optimized for Time)...");
+            if (nearestToClick != null)
+            {
+                Console.WriteLine($"   -> Finding fastest path (Time) from Station {startStation.Id} to Station {nearestToClick.Id}");
+                var dijkstraPath = Dijkstra.FindShortestPath(myCityMap, startStation, nearestToClick, OptimizationCriteria.Time);
+                
+                if (dijkstraPath.Count > 0)
+                {
+                    Console.WriteLine($"   -> PATH FOUND! Stops: {dijkstraPath.Count}");
+                    double totalTime = 0;
+                    double totalDist = 0;
+                    for (int i = 0; i < dijkstraPath.Count - 1; i++)
+                    {
+                        var s1 = dijkstraPath[i];
+                        var s2 = dijkstraPath[i+1];
+                        // Find the specific route connecting these two stations to calculate stats
+                        foreach(var r in myCityMap.GetOutgoingRoutes(s1))
+                        {
+                            if (r.Target.Id == s2.Id || r.Source.Id == s2.Id)
+                            {
+                                totalTime += r.Time;
+                                totalDist += r.Distance;
+                                break;
+                            }
+                        }
+                    }
+                    Console.WriteLine($"   -> Dijkstra Path Stats: Total Time: {totalTime:F2}, Distance: {totalDist:F2}");
+                }
+                else
+                {
+                    Console.WriteLine("   -> NO PATH FOUND.");
+                }
+            }
+
             Console.WriteLine("\n=== TESTS COMPLETE ===");
         }
     }
