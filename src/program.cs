@@ -7,7 +7,6 @@ using SmartTransit.Pathfinding;
 using SmartTransit;
 using SmartTransit.Tests;
 using System.Collections.Generic;
-using System.Linq;
 
 // Proje başlarken core testleri çalıştırıyoruz
 TestProgram.RunAllTests();
@@ -44,17 +43,35 @@ app.MapPost("/api/transit/generate", (int? stationCount, double? maxRouteLength)
     myCityMap = GraphGenerator.CreateFullGraph(actualStationCount, width, height, actualMaxRouteLength, enableBundling);
     myLocator = new SmartTransit.DataStructures.Locator(myCityMap, width, height);
 
-    return Results.Ok(new {
-        stations = myCityMap.Stations.Select(s => new { id = s.Id, name = s.Name, x = s.X, y = s.Y }),
-        routes = myCityMap.Routes.Select(r => new {
+    var stationsResult = new List<object>();
+    foreach (var s in myCityMap.Stations)
+    {
+        stationsResult.Add(new { id = s.Id, name = s.Name, x = s.X, y = s.Y });
+    }
+
+    var routesResult = new List<object>();
+    foreach (var r in myCityMap.Routes)
+    {
+        var pathPointsList = new List<object>();
+        foreach (var p in r.PathPoints)
+        {
+            pathPointsList.Add(new { x = p.X, y = p.Y });
+        }
+
+        routesResult.Add(new {
             id = r.Id,
             sourceId = r.Source.Id,
             targetId = r.Target.Id,
             distance = r.Distance,
             time = r.Time,
             cost = r.Cost,
-            pathPoints = r.PathPoints.Select(p => new { x = p.X, y = p.Y }).ToList()
-        })
+            pathPoints = pathPointsList
+        });
+    }
+
+    return Results.Ok(new {
+        stations = stationsResult,
+        routes = routesResult
     });
 });
 
@@ -70,8 +87,22 @@ app.MapGet("/api/transit/locate", (double x, double y) => {
 app.MapGet("/api/transit/find-path", (int startId, int endId, string algorithm, string criteria) => {
     if (myCityMap == null) return Results.BadRequest("Şehir grafı yüklenmedi.");
 
-    var startNode = myCityMap.Stations.FirstOrDefault(s => s.Id == startId);
-    var endNode = myCityMap.Stations.FirstOrDefault(s => s.Id == endId);
+    Station? startNode = null;
+    foreach (var s in myCityMap.Stations) {
+        if (s.Id == startId) {
+            startNode = s;
+            break;
+        }
+    }
+
+    Station? endNode = null;
+    foreach (var s in myCityMap.Stations) {
+        if (s.Id == endId) {
+            endNode = s;
+            break;
+        }
+    }
+
     if (startNode == null || endNode == null) return Results.BadRequest("Geçersiz istasyon.");
 
     var pathRoutesResult = new List<object>();
@@ -90,19 +121,33 @@ app.MapGet("/api/transit/find-path", (int startId, int endId, string algorithm, 
         List<Station> stationPath = Dijkstra.FindShortestPath(myCityMap, startNode, endNode, optCriteria);
         if (stationPath != null && stationPath.Count > 0)
         {
-            pathStationIds = stationPath.Select(s => s.Id).ToList();
+            foreach (var s in stationPath) {
+                pathStationIds.Add(s.Id);
+            }
+            
             for (int i = 0; i < stationPath.Count - 1; i++)
             {
                 var cur = stationPath[i]; var next = stationPath[i + 1];
-                var route = myCityMap.Routes.FirstOrDefault(r => 
-                    (r.Source.Id == cur.Id && r.Target.Id == next.Id) || 
-                    (r.Source.Id == next.Id && r.Target.Id == cur.Id));
                 
-                if (route != null) {
-                    pathRoutesResult.Add(new { id = route.Id, sourceId = route.Source.Id, targetId = route.Target.Id, pathPoints = route.PathPoints.Select(p => new { x = p.X, y = p.Y }) });
-                    totalWeight += (optCriteria == OptimizationCriteria.Distance) ? route.Distance :
-                                   (optCriteria == OptimizationCriteria.Time) ? route.Time :
-                                   (optCriteria == OptimizationCriteria.Cost) ? route.Cost : 1.0;
+                Route? foundRoute = null;
+                foreach (var r in myCityMap.Routes) {
+                    if ((r.Source.Id == cur.Id && r.Target.Id == next.Id) || 
+                        (r.Source.Id == next.Id && r.Target.Id == cur.Id)) {
+                        foundRoute = r;
+                        break;
+                    }
+                }
+                
+                if (foundRoute != null) {
+                    var pts = new List<object>();
+                    foreach (var p in foundRoute.PathPoints) {
+                        pts.Add(new { x = p.X, y = p.Y });
+                    }
+                    pathRoutesResult.Add(new { id = foundRoute.Id, sourceId = foundRoute.Source.Id, targetId = foundRoute.Target.Id, pathPoints = pts });
+                    
+                    totalWeight += (optCriteria == OptimizationCriteria.Distance) ? foundRoute.Distance :
+                                   (optCriteria == OptimizationCriteria.Time) ? foundRoute.Time :
+                                   (optCriteria == OptimizationCriteria.Cost) ? foundRoute.Cost : 1.0;
                 }
             }
         }
@@ -116,8 +161,14 @@ app.MapGet("/api/transit/find-path", (int startId, int endId, string algorithm, 
             totalWeight = result.TotalDistance;
             pathStationIds.Add(startNode.Id);
             foreach (var route in result.Path) {
-                pathRoutesResult.Add(new { id = route.Id, sourceId = route.Source.Id, targetId = route.Target.Id, pathPoints = route.PathPoints.Select(p => new { x = p.X, y = p.Y }) });
-                int nextId = (pathStationIds.Last() == route.Source.Id) ? route.Target.Id : route.Source.Id;
+                var pts = new List<object>();
+                foreach (var p in route.PathPoints) {
+                    pts.Add(new { x = p.X, y = p.Y });
+                }
+                pathRoutesResult.Add(new { id = route.Id, sourceId = route.Source.Id, targetId = route.Target.Id, pathPoints = pts });
+                
+                int lastAddedId = pathStationIds[pathStationIds.Count - 1];
+                int nextId = (lastAddedId == route.Source.Id) ? route.Target.Id : route.Source.Id;
                 pathStationIds.Add(nextId);
             }
         }
