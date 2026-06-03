@@ -34,15 +34,14 @@ app.UseCors("AllowAll");
 TransitGraph? myCityMap = null;
 SmartTransit.DataStructures.Locator? myLocator = null;
 
-// 1. ENDPOINT: Şehir ve Rota Üretimi
-app.MapPost("/api/transit/generate", () => {
-    int stationCount = 45;
+app.MapPost("/api/transit/generate", (int? stationCount, double? maxRouteLength) => {
+    int actualStationCount = stationCount ?? 35;
+    double actualMaxRouteLength = maxRouteLength ?? 220;
     double width = 800;
     double height = 600;
-    double maxRouteLength = 220;
     bool enableBundling = true;
 
-    myCityMap = GraphGenerator.CreateFullGraph(stationCount, width, height, maxRouteLength, enableBundling);
+    myCityMap = GraphGenerator.CreateFullGraph(actualStationCount, width, height, actualMaxRouteLength, enableBundling);
     myLocator = new SmartTransit.DataStructures.Locator(myCityMap, width, height);
 
     return Results.Ok(new {

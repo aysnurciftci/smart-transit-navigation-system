@@ -768,7 +768,7 @@
 
       durumCubugu.textContent = 'C# API ile yeni şehir haritası yükleniyor...';
 
-      fetch(API_URL + '/generate', {
+      fetch(`${API_URL}/generate?stationCount=${numStations}&maxRouteLength=${threshold}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       })
