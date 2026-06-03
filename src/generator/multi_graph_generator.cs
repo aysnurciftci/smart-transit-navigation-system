@@ -23,6 +23,15 @@ hemde multigraphtaki aynı yerlere giden rotaları ayırt etmeye kullanılabilir
 Rotaları belli parçalardaki çizgilere bölüp bu çizgileri rota nesnesine koyuyor.
 Bu şekilde kavisli rotayı tam olarak çizebilir yada üzerinden otobüs vs yürütebilirsiniz.
 
+Aynı istasyonlar arası birden fazla rota oluşturulmaktadır, bu rotaların sayısı
+n (istasyon sayısı) tipinden n*DuplicateMax ile n*DuplicateMin arasında rastgele bir sayı olacaktır.
+
+Rota uzunluğu, x,y verilerine göre, zaman ve masraf ise min-max parametrelerinin arasında rastgele
+bir sayı olarak belirlenmektedir.
+
+Son olarak hash table içinde bütün istasyonların sahip olduğu rotalar hesaplanır. Bu şekilde bir
+istasyona bağlı bütün rotaları O(1) zamanda erişebilirsiniz.
+
 Sonuç olarak bir TransitGraph nesnesi döndürür. Bunu herhangi bir TransitGraph referansına
 atıp Graphınız ile istediğinizi yapabilirsiniz.
 */
@@ -40,6 +49,16 @@ namespace SmartTransit.Generator
 {
     public static class GraphGenerator
     {
+        // Compile time parameters for duplicates
+        private const double DuplicateMin = 0.1;
+        private const double DuplicateMax = 0.3;
+
+        // Compile time parameters for random route attributes
+        private const double MinTime = 10.0;
+        private const double MaxTime = 120.0;
+        private const double MinCost = 2.0;
+        private const double MaxCost = 50.0;
+
         public static TransitGraph CreateFullGraph(
             int stationCount, 
             double maxX, 
@@ -63,7 +82,7 @@ namespace SmartTransit.Generator
                 graph.Stations.Add(new Station(i, x, y));
             }
 
-            // 2. Rotaları Oluştur (MST + Mesafe Eşiği)
+            // 2. Rotaları Oluştur (MST + Mesafe Eşiği + Duplicates)
             graph.Routes = BuildRoutes(graph.Stations, distanceThreshold);
 
             // 3. Görselleştirme Aktifse Kavisleri Hesapla
@@ -72,25 +91,33 @@ namespace SmartTransit.Generator
                 ApplyBundlingLogic(graph.Routes);
             }
 
+            // 4. İstasyonların bağlı olduğu rotaları O(1) erişim için hesapla ve kaydet
+            graph.BuildAdjacencyList();
+
             return graph;
+        }
+
+        private static Route CreateRandomRoute(int id, Station source, Station target, Random rand)
+        {
+            double distance = Math.Sqrt(Math.Pow(source.X - target.X, 2) + Math.Pow(source.Y - target.Y, 2));
+            double time = MinTime + (rand.NextDouble() * (MaxTime - MinTime));
+            double cost = MinCost + (rand.NextDouble() * (MaxCost - MinCost));
+            return new Route(id, source, target, distance, time, cost);
         }
 
         private static List<Route> BuildRoutes(List<Station> stations, double threshold)
         {
             var routes = new List<Route>();
             var rand = new Random();
+            int routeIdCounter = 1;
 
-            // 1. Tüm olası bağlantıları mesafeleriyle listele
+            // 1. Tüm olası bağlantıları listele (Tamamen rastgele mesafe, zaman, maliyet)
             var candidates = new List<Route>();
             for (int i = 0; i < stations.Count; i++)
             {
                 for (int j = i + 1; j < stations.Count; j++)
                 {
-                    double dist = Math.Sqrt(
-                        Math.Pow(stations[i].X - stations[j].X, 2) + 
-                        Math.Pow(stations[i].Y - stations[j].Y, 2)
-                    );
-                    candidates.Add(new Route(i * stations.Count + j, stations[i], stations[j], dist, dist, dist));
+                    candidates.Add(CreateRandomRoute(routeIdCounter++, stations[i], stations[j], rand));
                 }
             }
 
@@ -126,7 +153,7 @@ namespace SmartTransit.Generator
                             continue;
 
                         if (LinesIntersect(route.Source.X, route.Source.Y, route.Target.X, route.Target.Y,
-                                        existing.Source.X, existing.Source.Y, existing.Target.X, existing.Target.Y))
+                                           existing.Source.X, existing.Source.Y, existing.Target.X, existing.Target.Y))
                         {
                             crosses = true;
                             break;
@@ -139,24 +166,43 @@ namespace SmartTransit.Generator
                     }
                 }
             }
+
+            // 2. Multigraph için rastgele kopya rotalar oluştur
+            int n = routes.Count;
+            int numDuplicates = (int)(n * (DuplicateMin + rand.NextDouble() * (DuplicateMax - DuplicateMin)));
+
+            for (int i = 0; i < numDuplicates; i++)
+            {
+                if (n == 0) break;
+                // Rastgele var olan bir bağlantıyı seç
+                var baseRoute = routes[rand.Next(n)];
+                // Yeni bir ID ve rastgele parametrelerle aynı iki istasyon arasına yeni rota oluştur
+                routes.Add(CreateRandomRoute(routeIdCounter++, baseRoute.Source, baseRoute.Target, rand));
+            }
+
             return routes;
         }
 
-        private static bool LinesIntersect(double x1,double y1, double x2,double y2, double x3,double y3, double x4,double y4)
+        private static bool LinesIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4)
         {
             // İki doğrunun kesişim testi (Cross Product / Orientation check)
-            double d1 = Direction(x3,y3,x4,y4,x1,y1);
-            double d2 = Direction(x3,y3,x4,y4,x2,y2);
-            double d3 = Direction(x1,y1,x2,y2,x3,y3);
-            double d4 = Direction(x1,y1,x2,y2,x4,y4);
+            double d1 = Direction(x3, y3, x4, y4, x1, y1);
+            double d2 = Direction(x3, y3, x4, y4, x2, y2);
+            double d3 = Direction(x1, y1, x2, y2, x3, y3);
+            double d4 = Direction(x1, y1, x2, y2, x4, y4);
+
             if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
-                ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return true;
+                ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+                return true;
+
             return false;
         }
+
         private static double Direction(double x1, double y1, double x2, double y2, double x3, double y3)
         {
             return (x3 - x1) * (y2 - y1) - (x2 - x1) * (y3 - y1);
         }
+
         private static void ApplyBundlingLogic(List<Route> routes)
         {
             int subdivisions = 8; // Her yolu kaç noktaya böleceğiz?
@@ -171,13 +217,12 @@ namespace SmartTransit.Generator
                     double t = (double)i / subdivisions;
                     double px = route.Source.X + (route.Target.X - route.Source.X) * t;
                     double py = route.Source.Y + (route.Target.Y - route.Source.Y) * t;
-
-                    if (i > 0 && i < subdivisions) 
-                    {
+                    
+                    if (i > 0 && i < subdivisions) {
                         px += (new Random().NextDouble() - 0.5) * 8.0;
                         py += (new Random().NextDouble() - 0.5) * 8.0;
                     }
-
+                    
                     route.PathPoints.Add((px, py));
                 }
             }
@@ -198,8 +243,7 @@ namespace SmartTransit.Generator
 
                         // Uzun rotaların çok daha sert kümelenmesi, kısa rotaların ise düz kalması için karesel ölçekleme
                         double distanceRatio = r1.Distance / 100.0;
-                        double distanceScale = Math.Min(distanceRatio * distanceRatio, 15.0);   // Fizik patlamasın diye maks 15x limit
-
+                        double distanceScale = Math.Min(distanceRatio * distanceRatio, 15.0); // Fizik patlamasın diye maks 15x limit
 
                         // 2. Çekim Kuvveti: Diğer rotaların yakın segmentlerini kendine çeker
                         foreach (var r2 in routes)
@@ -217,8 +261,8 @@ namespace SmartTransit.Generator
                             }
                             else if (dist <= 3.0 && dist > 0.1) // Çok yakınlarsa hafifçe it ki paralel görünsünler
                             {
-                            forceX -= (dx / dist) * 1.5 * distanceScale;
-                            forceY -= (dy / dist) * 1.5 * distanceScale;
+                                forceX -= (dx / dist) * 1.5 * distanceScale;
+                                forceY -= (dy / dist) * 1.5 * distanceScale;
                             }
                         }
 
