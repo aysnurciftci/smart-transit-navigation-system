@@ -1,4 +1,5 @@
 /*
+Yazarlar: Ege Başaran, Bora Pektaş
 Burası İstasyon nesne class'ıdır. İstasyonun temelde x ve y konumu bilgileri vardır.
 
 Buna ek olarak ileride konum bilgileri, ID, istasyon adı bilgileri
@@ -11,7 +12,7 @@ using SmartTransit.DataStructures;
 namespace SmartTransit.Models
 {
     public class Station
-    {
+    {//Ege Basaran, Bora Pektas
         private HashTable<string, object> properties;
 
         public int Id 

@@ -1,5 +1,5 @@
 /*
-  AUTHOR: Aysenur Ciftci
+  Yazarlar: Ayşenur Çiftçi
   MODULE: QuadTree - Eşzamanlı Simülasyon Korumalı Konumsal İndeksleme Engine
 
   DESIGN RATIONALE & ARCHITECTURAL COMPARISON (MİMARİ TASARIM GEREKÇESİ)
@@ -54,7 +54,7 @@ using SmartTransit.Models;
 namespace SmartTransit.DataStructures
 {
     public class QuadTree : IDisposable
-    {
+    {//Aysenur Ciftci
         private readonly QuadNode _root;
         private readonly int _capacity;
 
@@ -71,7 +71,7 @@ namespace SmartTransit.DataStructures
         }
 
         public void Insert(Station station)
-        {
+        {//Aysenur Ciftci
             _lock.EnterWriteLock();
             try
             {
@@ -84,7 +84,7 @@ namespace SmartTransit.DataStructures
         }
 
         private bool InsertInternal(QuadNode node, Station station)
-        {
+        {//Aysenur Ciftci
             if (!node.Contains(station.X, station.Y)) return false;
 
             if (node.Stations.Count < _capacity && !node.IsDivided)
@@ -125,7 +125,7 @@ namespace SmartTransit.DataStructures
         }
 
         public List<Station> FindKNearestNeighbors(double targetX, double targetY, int k)
-        {
+        {//Aysenur Ciftci
             if (k <= 0) return new List<Station>();
 
             _lock.EnterReadLock();
@@ -149,7 +149,7 @@ namespace SmartTransit.DataStructures
         }
 
         private void FindKNNInternal(QuadNode node, double tx, double ty, SmartTransit.PriorityQueue pq)
-        {
+        {//Aysenur Ciftci
             if (node == null) return;
 
             foreach (var station in node.Stations)
@@ -169,7 +169,7 @@ namespace SmartTransit.DataStructures
         }
 
         private double CalculateDistanceSquared(double x1, double y1, double x2, double y2)
-        {
+        {//Aysenur Ciftci
             double dx = x1 - x2;
             double dy = y1 - y2;
             return (dx * dx) + (dy * dy);

@@ -1,3 +1,6 @@
+/*
+Yazarlar: Taylan Özer
+*/
 //A* ve Dijkstra'da kullanılacak sıralı kuyruk
 
 
@@ -8,7 +11,7 @@ using SmartTransit.Models;
 namespace SmartTransit 
 {
     public class PriorityQueue
-    {
+    {//Taylan Ozer
         // DEPOMUZ: Liste içinde (Mesafe, İstasyon) ikililerini tutacağız.
         // Mesafe (Priority) ne kadar küçükse, o istasyon kuyruğun en önüne geçecek.
         private List<(double Priority, Station Node)> _heap;
@@ -32,7 +35,7 @@ namespace SmartTransit
         //Ekleme (Enqueue)
         // Dijkstra algoritması yeni bir istasyon bulduğunda bu metodu çağıracak.
         public void Enqueue(double priority, Station node)
-        {
+        {//Taylan Ozer
             //Yeni elemanı listenin en sonuna ekle
             _heap.Add((priority, node));
             
@@ -44,7 +47,7 @@ namespace SmartTransit
         }
 
         private void BubbleUp(int index)
-        {
+        {//Taylan Ozer
             while (index > 0)
             {
                 // Ağaç yapısında bir çocuğun ebeveyninin indeksini bulma formülü: (index - 1) / 2
@@ -67,7 +70,7 @@ namespace SmartTransit
         }
         //Çıkarma (Dequeue)
         public Station Dequeue()
-        {
+        {//Taylan Ozer
             if (IsEmpty())
             {
                 throw new InvalidOperationException("Kuyruk boş, çıkarılacak eleman yok!");
@@ -93,7 +96,7 @@ namespace SmartTransit
         }
 
         private void BubbleDown(int index)
-        {
+        {//Taylan Ozer
             // Ağaç yapısında sol ve sağ çocukların indekslerini bulma formülleri
             int leftChildIndex = 2 * index + 1;
             int rightChildIndex = 2 * index + 2;
