@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: transit_backend_final
+    expose:
+      - "5000"
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: transit_frontend_final
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always

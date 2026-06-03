@@ -30,7 +30,7 @@ namespace SmartTransit.MultiGraph
             _lock.EnterWriteLock();
             try
             {
-                AdjacencyList = new HashTable<int, List<Route>>(Stations.Count * 2);
+                AdjacencyList = new HashTable<int, List<Route>>();
                 
                 foreach (var station in Stations)
                 {

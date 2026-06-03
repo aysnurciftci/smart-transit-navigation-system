@@ -247,6 +247,7 @@ namespace SmartTransit.DataStructures
         private void Resize()
         {//Bora Pektas
             int newCapacity = buckets.Length * 2;
+            Console.WriteLine($"[HashTable Info] Capacity limit reached! Resized dynamically from {buckets.Length} to {newCapacity} buckets to accommodate more stations.");
             HashNode[] newBuckets = new HashNode[newCapacity];
 
             foreach (var head in buckets)

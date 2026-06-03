@@ -2,9 +2,32 @@
 
 Bu proje, **Veri Yapıları (Data Structures)** dersi kapsamında, tamamen sıfırdan ve hiçbir hazır C# koleksiyonu (`Dictionary`, `HashSet`, `Stack`, `Queue` vb.) veya `System.Linq` kütüphanesi kullanılmadan geliştirilmiş, yüksek performanslı bir uzamsal navigasyon ve toplu taşıma simülasyonu altyapısıdır.
 
+**Proje Raporu:** [https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing](Proje Raporu)
+**Proje Raporu .pdf:** [https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing](Proje Raporu Pdf)
+**Proje Videosu:** [https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing](Demo Videosu (daha yok))
+
 ## Proje Özeti
 Sistem, rastgele oluşturulan bir şehir haritası (Multigraph) üzerinde istasyonları ve ulaşım ağlarını modeller. Kullanıcının harita üzerinde tıkladığı herhangi bir konuma **en yakın istasyonu anında bulur** ve bu istasyondan hedef noktaya **A*** veya **Dijkstra** algoritmalarını kullanarak en ideal rotayı çizer.
 
+## Nasıl Çalıştırılır?
+
+Projemiz platform bağımsızdır ve tam kapsamlı çalışabilmesi için **Docker** mimarisine geçirilmiştir. Yerel makinenizde herhangi bir .NET veya web sunucusu kurmanıza gerek yoktur.
+
+Sistemi tam yığınıyla (Nginx Frontend + C# Kestrel Backend) ayağa kaldırmak için terminalde projenin kök dizininde şu komutu çalıştırın:
+
+```bash
+sudo docker compose up -d
+```
+
+Derleme tamamlandıktan sonra tarayıcınızda **`http://localhost`** adresine giderek Smart Transit arayüzünü kullanmaya başlayabilirsiniz.
+
+## Proje Mimarisi ve Docker Konfigürasyonları
+
+Sistem, modern web standartlarına uygun olarak mikroservis benzeri bir container mimarisiyle tasarlanmıştır. Tüm sistem bağımlılık sorunu yaşamadan, tek bir `docker-compose up` komutuyla entegre şekilde ayağa kalkar:
+
+- **Frontend (Nginx Container):** `frontend/Dockerfile` kullanılarak oluşturulur. Alpine Linux tabanlı hafif bir Nginx sunucusu, kullanıcı arayüzünü (HTML/JS/CSS) `80` portundan yayınlar. Aynı zamanda bir Reverse Proxy (Ters Vekil Sunucu) görevi görerek `/api/transit` isteklerini doğrudan Backend servisine yönlendirir.
+- **Backend (.NET 9 Kestrel Container):** `src/Dockerfile` kullanılarak oluşturulur. C# algoritmalarımızı ve Minimal API hizmetimizi barındıran çekirdek sunucudur. Nginx'ten gelen talepleri dinler ve JSON formatında rota sonuçlarını döndürür.
+- **Docker Compose Orchestration:** `docker-compose.yml` dosyası, Frontend ve Backend container'larını aynı sanal ağ (network) üzerinde birleştirerek bağımlılıkları çözer ve sistemin tek tıkla tam yığın (full-stack) olarak ayağa kalkmasını sağlar.
 ## Kullanılan Özgün Veri Yapıları
 Akademik isterler doğrultusunda, C#'ın hazır kütüphaneleri reddedilerek aşağıdaki tüm veri yapıları sıfırdan yazılmıştır:
 
@@ -24,17 +47,6 @@ Proje, asenkron "Simülasyon Motoru" veya mikroservislerin arka planda veri değ
 - `QuadTree`, `HashTable` ve `TransitGraph` üzerinde `ReaderWriterLockSlim` mekanizması uygulanmıştır.
 - Çoklu okuma işlemleri (ReadLock) aynı anda asenkron yapılabilirken, yazma ve değiştirme (WriteLock) işlemleri Race Condition (Yarış Durumu) engellenerek güvenle kuyruğa alınır.
 
-## Nasıl Çalıştırılır?
-
-Projenin kök `src/` dizinine gidin ve aşağıdaki komutları çalıştırın:
-
-```bash
-cd src/
-dotnet build
-dotnet run
-```
-
-Bu işlem, `test_program.cs` içerisindeki kapsamlı test paketini çalıştırarak; Harita Üretimini, O(1) HashTable Adjacency Aramalarını, A* Algoritmasını, QuadTree Uzamsal İndeksini ve Dijkstra (Time Optimized) Navigasyonunu sırasıyla test edecek ve sonuçları konsola basacaktır.
 
 ## Üyeler:
 032490020 - Ege Başaran  
