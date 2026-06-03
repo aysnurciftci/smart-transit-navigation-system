@@ -2,9 +2,9 @@
 
 Bu proje, **Veri Yapıları (Data Structures)** dersi kapsamında, tamamen sıfırdan ve hiçbir hazır C# koleksiyonu (`Dictionary`, `HashSet`, `Stack`, `Queue` vb.) veya `System.Linq` kütüphanesi kullanılmadan geliştirilmiş, yüksek performanslı bir uzamsal navigasyon ve toplu taşıma simülasyonu altyapısıdır.
 
-**Proje Raporu:** [https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing](Proje Raporu)
-**Proje Raporu .pdf:** [https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing](Proje Raporu Pdf)
-**Proje Videosu:** [https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing](Demo Videosu (daha yok))
+**Proje Raporu:** [Proje Raporu](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
+**Proje Raporu .pdf:** [Proje Raporu Pdf](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
+**Proje Videosu:** [Demo Videosu (daha yok)](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
 
 ## Proje Özeti
 Sistem, rastgele oluşturulan bir şehir haritası (Multigraph) üzerinde istasyonları ve ulaşım ağlarını modeller. Kullanıcının harita üzerinde tıkladığı herhangi bir konuma **en yakın istasyonu anında bulur** ve bu istasyondan hedef noktaya **A*** veya **Dijkstra** algoritmalarını kullanarak en ideal rotayı çizer.
