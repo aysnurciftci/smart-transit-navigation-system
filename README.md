@@ -3,7 +3,9 @@
 Bu proje, **Veri Yapıları (Data Structures)** dersi kapsamında, tamamen sıfırdan ve hiçbir hazır C# koleksiyonu (`Dictionary`, `HashSet`, `Stack`, `Queue` vb.) veya `System.Linq` kütüphanesi kullanılmadan geliştirilmiş, yüksek performanslı bir uzamsal navigasyon ve toplu taşıma simülasyonu altyapısıdır.
 
 **Proje Raporu:** [Proje Raporu](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
+
 **Proje Raporu .pdf:** [Proje Raporu Pdf](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
+
 **Proje Videosu:** [Demo Videosu (daha yok)](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
 
 ## Proje Özeti
