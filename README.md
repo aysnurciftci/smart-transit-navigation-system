@@ -6,7 +6,7 @@ Bu proje, **Veri Yapıları (Data Structures)** dersi kapsamında, tamamen sıf�
 
 **Proje Raporu .pdf:** [Proje Raporu Pdf](https://drive.google.com/file/d/1AJ-fMjbfNqV2ZVRr0SIK0f6iw3q3hLiL/view?usp=sharing)
 
-**Proje Videosu:** [Demo Videosu (daha yok)](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
+**Proje Videosu:** [Demo Videosu](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
 
 ## Proje Özeti
 Sistem, rastgele oluşturulan bir şehir haritası (Multigraph) üzerinde istasyonları ve ulaşım ağlarını modeller. Kullanıcının harita üzerinde tıkladığı herhangi bir konuma **en yakın istasyonu anında bulur** ve bu istasyondan hedef noktaya **A*** veya **Dijkstra** algoritmalarını kullanarak en ideal rotayı çizer.
