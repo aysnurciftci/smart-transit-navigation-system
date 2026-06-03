@@ -4,7 +4,7 @@ Bu proje, **Veri Yapıları (Data Structures)** dersi kapsamında, tamamen sıf�
 
 **Proje Raporu:** [Proje Raporu](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
 
-**Proje Raporu .pdf:** [Proje Raporu Pdf](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
+**Proje Raporu .pdf:** [Proje Raporu Pdf](https://drive.google.com/file/d/1AJ-fMjbfNqV2ZVRr0SIK0f6iw3q3hLiL/view?usp=sharing)
 
 **Proje Videosu:** [Demo Videosu (daha yok)](https://docs.google.com/document/d/1IBOHJYe3yoHdQ8k2MnMZtiVLaSC_uoi0WtdJv7NUChI/edit?usp=sharing)
 
