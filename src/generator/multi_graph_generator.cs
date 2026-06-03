@@ -48,7 +48,7 @@ using SmartTransit.MultiGraph;
 namespace SmartTransit.Generator
 {
     public static class GraphGenerator
-    {
+    {//Ege Basaran, Bora Pektas
         // Compile time parameters for duplicates
         private const double DuplicateMin = 0.1;
         private const double DuplicateMax = 0.3;
@@ -65,7 +65,7 @@ namespace SmartTransit.Generator
             double maxY, 
             double distanceThreshold, 
             bool enableVisualBundling)
-        {
+        {//Ege Basaran, Bora Pektas
             var graph = new TransitGraph();
             var rand = new Random();
 
@@ -98,7 +98,7 @@ namespace SmartTransit.Generator
         }
 
         private static Route CreateRandomRoute(int id, Station source, Station target, Random rand)
-        {
+        {//Ege Basaran, Bora Pektas
             double distance = Math.Sqrt(Math.Pow(source.X - target.X, 2) + Math.Pow(source.Y - target.Y, 2));
             double time = MinTime + (rand.NextDouble() * (MaxTime - MinTime));
             double cost = MinCost + (rand.NextDouble() * (MaxCost - MinCost));
@@ -106,7 +106,7 @@ namespace SmartTransit.Generator
         }
 
         private static List<Route> BuildRoutes(List<Station> stations, double threshold)
-        {
+        {//Ege Basaran, Bora Pektas
             var routes = new List<Route>();
             var rand = new Random();
             int routeIdCounter = 1;
@@ -184,7 +184,7 @@ namespace SmartTransit.Generator
         }
 
         private static bool LinesIntersect(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4)
-        {
+        {//Ege Basaran, Bora Pektas
             // İki doğrunun kesişim testi (Cross Product / Orientation check)
             double d1 = Direction(x3, y3, x4, y4, x1, y1);
             double d2 = Direction(x3, y3, x4, y4, x2, y2);
@@ -199,12 +199,12 @@ namespace SmartTransit.Generator
         }
 
         private static double Direction(double x1, double y1, double x2, double y2, double x3, double y3)
-        {
+        {//Ege Basaran, Bora Pektas
             return (x3 - x1) * (y2 - y1) - (x2 - x1) * (y3 - y1);
         }
 
         private static void ApplyBundlingLogic(List<Route> routes)
-        {
+        {//Ege Basaran, Bora Pektas
             int subdivisions = 8; // Her yolu kaç noktaya böleceğiz?
             int iterations = 60;  // Kümeleme sertliği
             double step = 0.1;

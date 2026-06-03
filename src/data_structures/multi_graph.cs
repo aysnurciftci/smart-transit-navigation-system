@@ -16,7 +16,7 @@ using SmartTransit.DataStructures;
 namespace SmartTransit.MultiGraph
 {
     public class TransitGraph : IDisposable
-    {
+    {//Ege Basaran, Bora Pektas
         public List<Station> Stations { get; set; } = new List<Station>();
         public List<Route> Routes { get; set; } = new List<Route>();
         
@@ -26,7 +26,7 @@ namespace SmartTransit.MultiGraph
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
         
         public void BuildAdjacencyList()
-        {
+        {//Ege Basaran, Bora Pektas
             _lock.EnterWriteLock();
             try
             {
@@ -51,7 +51,7 @@ namespace SmartTransit.MultiGraph
 
         // Herhangi bir istasyondan çıkan rotaları O(1) karmaşıklığında veren fonksiyon
         public List<Route> GetOutgoingRoutes(Station station)
-        {
+        {//Ege Basaran, Bora Pektas
             if (AdjacencyList == null)
             {
                 BuildAdjacencyList();

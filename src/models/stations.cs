@@ -12,7 +12,7 @@ using SmartTransit.DataStructures;
 namespace SmartTransit.Models
 {
     public class Station
-    {
+    {//Ege Basaran, Bora Pektas
         private HashTable<string, object> properties;
 
         public int Id 

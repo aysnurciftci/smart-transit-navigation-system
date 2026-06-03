@@ -20,7 +20,7 @@ using SmartTransit.Models;
 namespace SmartTransit.DataStructures
 {
     public class QuadNode
-    {
+    {//Aysenur Ciftci
         // Bölgenin merkez koordinatları (X, Y) ve yarım genişlik / yarım yükseklik değerleri
         public double X { get; set; }
         public double Y { get; set; }
@@ -49,7 +49,7 @@ namespace SmartTransit.DataStructures
 
         // Harita/Ekran Koordinat Sistemine Gore Subdivide (Sol ust = kucuk Y)
         public void Subdivide()
-        {
+        {//Aysenur Ciftci
             double halfWidth = Width / 2;
             double halfHeight = Height / 2;
 
@@ -65,7 +65,7 @@ namespace SmartTransit.DataStructures
 
         // Istasyonun bu sınırların icinde olup olmadıgını kontrol eder
         public bool Contains(double stX, double stY)
-        {
+        {//Aysenur Ciftci
             return stX >= X - Width && stX <= X + Width &&
                    stY >= Y - Height && stY <= Y + Height;
         }

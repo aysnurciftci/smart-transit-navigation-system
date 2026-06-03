@@ -29,7 +29,7 @@ namespace SmartTransit.DataStructures
     /// Böylece konum sorgularında istasyonların yeniden indekslenmesi engellenir.
     /// </summary>
     public class Locator
-    {
+    {//Aysenur Ciftci
         private readonly QuadTree _quadTree;
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace SmartTransit.DataStructures
         /// <param name="mapWidth">Haritanın genişliği</param>
         /// <param name="mapHeight">Haritanın yüksekliği</param>
         public Locator(TransitGraph graph, double mapWidth, double mapHeight)
-        {
+        {//Aysenur Ciftci
             if (graph == null || graph.Stations == null || graph.Stations.Count == 0)
             {
                 return;
@@ -65,7 +65,7 @@ namespace SmartTransit.DataStructures
         /// Verilen koordinata en yakın istasyonu döndürür.
         /// </summary>
         public Station LocateNearestStation(double targetX, double targetY)
-        {
+        {//Aysenur Ciftci
             if (_quadTree == null)
             {
                 return null;

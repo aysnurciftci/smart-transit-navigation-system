@@ -21,9 +21,9 @@ namespace SmartTransit
     }
 
     public class Dijkstra
-    {
+    {//Taylan Ozer
         public static List<Station> FindShortestPath(TransitGraph graph, Station startNode, Station endNode, OptimizationCriteria criteria = OptimizationCriteria.Distance)
-        {
+        {//Taylan Ozer
             var costs = new SmartTransit.DataStructures.HashTable<int, double>();
             var previousNodes = new SmartTransit.DataStructures.HashTable<int, Station>();
             var pq = new PriorityQueue();

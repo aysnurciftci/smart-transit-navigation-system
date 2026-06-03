@@ -18,7 +18,7 @@ namespace SmartTransit.DataStructures
 {
     
     public class HashTable<TKey, TValue> : IDisposable
-    {
+    {//Bora Pektas
         private class HashNode
         {
             public TKey Key { get; set; }
@@ -64,7 +64,7 @@ namespace SmartTransit.DataStructures
 
         //Girdinin array içinde nerede olduğunu bulma
         private int GetBucketIndex(TKey key)
-        {
+        {//Bora Pektas
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
             
@@ -76,7 +76,7 @@ namespace SmartTransit.DataStructures
 
         //Ekleme fonksiyonu, %75 dolu ise daha fazla alan ister. Girdinin zaten olup olmadığına bakar,
         public void Add(TKey key, TValue value)
-        {
+        {//Bora Pektas
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
@@ -117,7 +117,7 @@ namespace SmartTransit.DataStructures
         }
 
         public bool ContainsKey(TKey key)
-        {
+        {//Bora Pektas
             _lock.EnterReadLock();
             try
             {
@@ -141,7 +141,7 @@ namespace SmartTransit.DataStructures
         
         //Girdinin Bağlı Listede olup olmadığını kontrol eder
         public bool TryGetValue(TKey key, out TValue value)
-        {
+        {//Bora Pektas
             _lock.EnterReadLock();
             try
             {
@@ -169,7 +169,7 @@ namespace SmartTransit.DataStructures
         
         //Verilen anahtarın değerini bulur
         public TValue Get(TKey key)
-        {
+        {//Bora Pektas
             if (TryGetValue(key, out TValue value))
             {
                 return value;
@@ -180,7 +180,7 @@ namespace SmartTransit.DataStructures
         
         //Verilen yeni girdiyi eski anahtar ile değiştirir
         public void Set(TKey key, TValue value)
-        {
+        {//Bora Pektas
             _lock.EnterWriteLock();
             try
             {
@@ -208,7 +208,7 @@ namespace SmartTransit.DataStructures
         
         //Verilen anahtarı siler
         public bool Remove(TKey key)
-        {
+        {//Bora Pektas
             _lock.EnterWriteLock();
             try
             {
@@ -245,7 +245,7 @@ namespace SmartTransit.DataStructures
         
         //Alanını 2 kat'a çıkarır (alan bitmeye başladığında)
         private void Resize()
-        {
+        {//Bora Pektas
             int newCapacity = buckets.Length * 2;
             HashNode[] newBuckets = new HashNode[newCapacity];
 

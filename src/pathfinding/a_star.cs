@@ -14,7 +14,7 @@ using SmartTransit.DataStructures;
 namespace SmartTransit.Pathfinding
 {
     public class AStar
-    {
+    {//Bora Pektas
         private TransitGraph _graph;
 
         public AStar(TransitGraph graph)
@@ -24,13 +24,13 @@ namespace SmartTransit.Pathfinding
 
         // Sezgi fonksiyonu: Kuş uçumu mesafe
         private double Heuristic(Station a, Station b)
-        {
+        {//Bora Pektas
             return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
         }
 
         // Başlangıç istasyonundan son istasyona bulunan rota
         public (List<Route> Path, double TotalDistance) FindPath(Station start, Station goal)
-        {
+        {//Bora Pektas
             var openSet = new PriorityQueue();
             openSet.Enqueue(0, start);
 
@@ -105,7 +105,7 @@ namespace SmartTransit.Pathfinding
         }
         //Bulunan yolu return'lemeye hazır hale getirme
         private (List<Route>, double) ReconstructPath(HashTable<int, Route> cameFrom, Station current, double totalDistance)
-        {
+        {//Bora Pektas
             var path = new List<Route>();
             
             while (cameFrom.ContainsKey(current.Id))
